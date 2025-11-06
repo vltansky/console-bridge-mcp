@@ -1,24 +1,20 @@
 // DOM elements
-const statusIndicator = document.getElementById('status-indicator')!;
-const statusText = document.getElementById('status-text')!;
-const toggleBtn = document.getElementById('toggle-btn')!;
-const toggleText = document.getElementById('toggle-text')!;
-const clearBtn = document.getElementById('clear-btn')!;
-const totalLogsEl = document.getElementById('total-logs')!;
-const activeTabsEl = document.getElementById('active-tabs')!;
-const queuedLogsEl = document.getElementById('queued-logs')!;
-const tabsList = document.getElementById('tabs-list')!;
-const sanitizeCheckbox = document.getElementById(
-  'sanitize-checkbox',
-) as HTMLInputElement;
+const statusIndicator = document.getElementById('status-indicator') as HTMLElement;
+const statusText = document.getElementById('status-text') as HTMLElement;
+const toggleBtn = document.getElementById('toggle-btn') as HTMLButtonElement;
+const toggleText = document.getElementById('toggle-text') as HTMLElement;
+const clearBtn = document.getElementById('clear-btn') as HTMLButtonElement;
+const totalLogsEl = document.getElementById('total-logs') as HTMLElement;
+const activeTabsEl = document.getElementById('active-tabs') as HTMLElement;
+const queuedLogsEl = document.getElementById('queued-logs') as HTMLElement;
+const tabsList = document.getElementById('tabs-list') as HTMLElement;
+const sanitizeCheckbox = document.getElementById('sanitize-checkbox') as HTMLInputElement;
 const captureErrorsCheckbox = document.getElementById(
   'capture-errors-checkbox',
 ) as HTMLInputElement;
 
 // Update status display
-function updateStatus(
-  status: 'connected' | 'disconnected' | 'reconnecting',
-): void {
+function updateStatus(status: 'connected' | 'disconnected' | 'reconnecting'): void {
   statusIndicator.className = `status-indicator ${status}`;
 
   switch (status) {
@@ -122,8 +118,7 @@ async function loadSettings(): Promise<void> {
   ]);
 
   sanitizeCheckbox.checked = settings.console_mcp_sanitize || false;
-  captureErrorsCheckbox.checked =
-    settings.console_mcp_capture_errors !== false;
+  captureErrorsCheckbox.checked = settings.console_mcp_capture_errors !== false;
 }
 
 // Save settings

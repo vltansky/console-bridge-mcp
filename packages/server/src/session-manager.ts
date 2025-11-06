@@ -1,5 +1,5 @@
+import { randomUUID } from 'node:crypto';
 import type { LogMessage, Session } from '@console-mcp/shared';
-import { randomUUID } from 'crypto';
 
 export class SessionManager {
   private sessions = new Map<string, Session>();
@@ -18,9 +18,6 @@ export class SessionManager {
     };
 
     this.sessions.set(sessionId, session);
-    console.log(
-      `[SessionManager] Saved session ${sessionId} (${logs.length} logs)`,
-    );
     return sessionId;
   }
 

@@ -4,9 +4,7 @@
   "private": true,
   "type": "module",
   "description": "MCP server for capturing and querying browser console logs",
-  "workspaces": [
-    "packages/*"
-  ],
+  "workspaces": ["packages/*"],
   "scripts": {
     "build": "npm run build --workspaces",
     "test": "vitest",
@@ -24,14 +22,7 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "keywords": [
-    "mcp",
-    "console",
-    "logging",
-    "browser",
-    "debugging",
-    "chrome-extension"
-  ],
+  "keywords": ["mcp", "console", "logging", "browser", "debugging", "chrome-extension"],
   "author": "",
   "license": "MIT"
 }

@@ -1,17 +1,14 @@
 import type {
-  LogMessage,
-  SearchParams,
   KeywordSearchParams,
-  SearchResult,
+  LogMessage,
   SearchMatch,
+  SearchParams,
+  SearchResult,
 } from '@console-mcp/shared';
 
 export class SearchEngine {
   search(logs: LogMessage[], params: SearchParams): SearchResult {
-    const regex = new RegExp(
-      params.pattern,
-      params.caseSensitive ? 'g' : 'gi',
-    );
+    const regex = new RegExp(params.pattern, params.caseSensitive ? 'g' : 'gi');
 
     const matches: SearchMatch[] = [];
     const fields = params.fields || ['message', 'args', 'stack'];
@@ -47,21 +44,17 @@ export class SearchEngine {
     return { matches, total: matches.length };
   }
 
-  searchKeywords(
-    logs: LogMessage[],
-    params: KeywordSearchParams,
-  ): SearchResult {
+  searchKeywords(logs: LogMessage[], params: KeywordSearchParams): SearchResult {
     const limit = params.limit || 100;
     const matches: SearchMatch[] = [];
 
     for (let i = 0; i < logs.length; i++) {
       const log = logs[i];
-      const text = `${log.message} ${JSON.stringify(log.args)}${log.stack ? ` ${log.stack}` : ''}`.toLowerCase();
+      const text =
+        `${log.message} ${JSON.stringify(log.args)}${log.stack ? ` ${log.stack}` : ''}`.toLowerCase();
 
       // Check if all/any keywords match
-      const keywordMatches = params.keywords.map((kw) =>
-        text.includes(kw.toLowerCase()),
-      );
+      const keywordMatches = params.keywords.map((kw) => text.includes(kw.toLowerCase()));
 
       let isMatch: boolean;
       if (params.logic === 'OR') {
@@ -73,9 +66,7 @@ export class SearchEngine {
 
       // Check exclude keywords
       if (isMatch && params.exclude?.length) {
-        const hasExcluded = params.exclude.some((ex) =>
-          text.includes(ex.toLowerCase()),
-        );
+        const hasExcluded = params.exclude.some((ex) => text.includes(ex.toLowerCase()));
         if (hasExcluded) {
           isMatch = false;
         }

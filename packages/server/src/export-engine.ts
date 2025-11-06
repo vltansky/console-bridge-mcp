@@ -9,11 +9,7 @@ export interface ExportOptions {
 }
 
 export class ExportEngine {
-  export(
-    logs: LogMessage[],
-    format: ExportFormat,
-    options: Partial<ExportOptions> = {},
-  ): string {
+  export(logs: LogMessage[], format: ExportFormat, options: Partial<ExportOptions> = {}): string {
     switch (format) {
       case 'json':
         return this.exportJSON(logs, options);
@@ -28,20 +24,14 @@ export class ExportEngine {
 
   private exportJSON(logs: LogMessage[], options: Partial<ExportOptions>): string {
     const data = options.fields
-      ? logs.map((log) => this.selectFields(log, options.fields!))
+      ? logs.map((log) => this.selectFields(log, options.fields as string[]))
       : logs;
 
     return JSON.stringify(data, null, options.prettyPrint ? 2 : 0);
   }
 
   private exportCSV(logs: LogMessage[], options: Partial<ExportOptions>): string {
-    const fields = options.fields || [
-      'timestamp',
-      'level',
-      'message',
-      'url',
-      'tabId',
-    ];
+    const fields = options.fields || ['timestamp', 'level', 'message', 'url', 'tabId'];
 
     // Header
     const header = fields.join(',');
@@ -78,10 +68,7 @@ export class ExportEngine {
       .join('\n');
   }
 
-  private selectFields(
-    log: LogMessage,
-    fields: Array<keyof LogMessage>,
-  ): Partial<LogMessage> {
+  private selectFields(log: LogMessage, fields: Array<keyof LogMessage>): Partial<LogMessage> {
     const result: Partial<LogMessage> = {};
     for (const field of fields) {
       result[field] = log[field];

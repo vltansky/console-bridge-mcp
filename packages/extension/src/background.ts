@@ -1,5 +1,5 @@
-import { WebSocketClient } from './lib/websocket-client';
 import type { LogMessage, TabInfo } from '@console-mcp/shared';
+import { WebSocketClient } from './lib/websocket-client';
 
 // Configuration
 const WS_URL = 'ws://localhost:3333';
@@ -7,8 +7,6 @@ const WS_URL = 'ws://localhost:3333';
 // Initialize WebSocket client
 const wsClient = new WebSocketClient({
   url: WS_URL,
-  batchSize: 50,
-  batchInterval: 100,
 });
 
 // Track tab information
@@ -25,9 +23,9 @@ const STORAGE_KEYS = {
 // Extension state
 let isEnabled = true;
 
-// Initialize extension
-chrome.runtime.onInstalled.addListener(async () => {
-  console.log('[Background] Extension installed');
+// Initialize settings and connect immediately
+async function initialize() {
+  console.log('[Background] Initializing...');
 
   // Load settings
   const settings = await chrome.storage.local.get([
@@ -42,25 +40,30 @@ chrome.runtime.onInstalled.addListener(async () => {
   if (isEnabled) {
     wsClient.connect();
   }
+}
+
+// Initialize extension
+chrome.runtime.onInstalled.addListener(async () => {
+  console.log('[Background] Extension installed');
+  await initialize();
 });
 
 // Connect on startup
 chrome.runtime.onStartup.addListener(() => {
   console.log('[Background] Extension started');
-  if (isEnabled) {
-    wsClient.connect();
-  }
+  initialize();
 });
 
-// Handle messages from content scripts
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (!isEnabled) {
-    return;
-  }
+// Initialize immediately when service worker loads
+initialize();
 
+// Handle messages from content scripts and popup
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   switch (message.type) {
     case 'console_log':
-      handleConsoleLog(message.data, sender);
+      if (isEnabled) {
+        handleConsoleLog(message.data, sender);
+      }
       break;
 
     case 'get_tab_id':
@@ -79,6 +82,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       toggleEnabled().then((enabled) => {
         sendResponse({ enabled });
       });
+      return true;
+
+    case 'get_tabs':
+      const tabStats = Array.from(tabs.values()).map((tab) => ({
+        ...tab,
+        logCount: tabLogCounts.get(tab.id) || 0,
+      }));
+      sendResponse({ tabs: tabStats });
       return true;
   }
 });
@@ -106,10 +117,7 @@ function handleConsoleLog(log: LogMessage, sender: chrome.runtime.MessageSender)
   }
 
   // Update log count
-  tabLogCounts.set(
-    sender.tab.id,
-    (tabLogCounts.get(sender.tab.id) || 0) + 1,
-  );
+  tabLogCounts.set(sender.tab.id, (tabLogCounts.get(sender.tab.id) || 0) + 1);
 
   // Ensure the log has the correct tab ID
   const logWithTabId: LogMessage = {
@@ -180,17 +188,5 @@ async function toggleEnabled(): Promise<boolean> {
 
   return isEnabled;
 }
-
-// Get tab statistics
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message.type === 'get_tabs') {
-    const tabStats = Array.from(tabs.values()).map((tab) => ({
-      ...tab,
-      logCount: tabLogCounts.get(tab.id) || 0,
-    }));
-    sendResponse({ tabs: tabStats });
-    return true;
-  }
-});
 
 console.log('[Background] Service worker initialized');

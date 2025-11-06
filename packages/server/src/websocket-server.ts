@@ -1,10 +1,6 @@
-import { WebSocketServer, WebSocket } from 'ws';
-import type {
-  ExtensionMessage,
-  ServerMessage,
-  TabInfo,
-} from '@console-mcp/shared';
+import type { ExtensionMessage, ServerMessage, TabInfo } from '@console-mcp/shared';
 import { ExtensionMessageSchema } from '@console-mcp/shared';
+import { WebSocket, WebSocketServer } from 'ws';
 import type { LogStorage } from './log-storage.js';
 
 export interface WebSocketServerConfig {
@@ -41,20 +37,14 @@ export class ConsoleWebSocketServer {
     });
 
     this.wss.on('connection', this.handleConnection);
-    this.wss.on('error', (error) => {
-      console.error('[WebSocket] Server error:', error);
+    this.wss.on('error', (_error) => {
+      // Silently handle errors to avoid interfering with MCP stdio
     });
 
     this.startHeartbeat();
-
-    console.log(
-      `[WebSocket] Server listening on ${this.config.host}:${this.config.port}`,
-    );
   }
 
   private handleConnection = (ws: WebSocket): void => {
-    console.log('[WebSocket] Client connected');
-
     const clientInfo: ClientInfo = {
       ws,
       isAlive: true,
@@ -67,8 +57,8 @@ export class ConsoleWebSocketServer {
         const rawMessage = JSON.parse(data.toString());
         const message = ExtensionMessageSchema.parse(rawMessage);
         this.handleMessage(message, clientInfo);
-      } catch (error) {
-        console.error('[WebSocket] Invalid message:', error);
+      } catch (_error) {
+        // Silently handle invalid messages
       }
     });
 
@@ -78,12 +68,11 @@ export class ConsoleWebSocketServer {
     });
 
     ws.on('close', () => {
-      console.log('[WebSocket] Client disconnected');
       this.clients.delete(ws);
     });
 
-    ws.on('error', (error) => {
-      console.error('[WebSocket] Client error:', error);
+    ws.on('error', (_error) => {
+      // Silently handle client errors
     });
   };
 
@@ -95,14 +84,10 @@ export class ConsoleWebSocketServer {
 
       case 'tab_opened':
         this.tabs.set(message.data.id, message.data);
-        console.log(
-          `[WebSocket] Tab opened: ${message.data.id} - ${message.data.url}`,
-        );
         break;
 
       case 'tab_closed':
         this.tabs.delete(message.data.tabId);
-        console.log(`[WebSocket] Tab closed: ${message.data.tabId}`);
         break;
 
       case 'heartbeat':
@@ -117,7 +102,6 @@ export class ConsoleWebSocketServer {
       const now = Date.now();
       for (const [ws, client] of this.clients.entries()) {
         if (!client.isAlive) {
-          console.log('[WebSocket] Terminating inactive client');
           ws.terminate();
           this.clients.delete(ws);
           continue;
@@ -126,7 +110,6 @@ export class ConsoleWebSocketServer {
         client.isAlive = false;
         ws.ping();
 
-        // Send ping message
         const message: ServerMessage = {
           type: 'ping',
           data: { timestamp: now },
@@ -165,6 +148,5 @@ export class ConsoleWebSocketServer {
       clearInterval(this.heartbeatInterval);
     }
     this.wss.close();
-    console.log('[WebSocket] Server closed');
   }
 }

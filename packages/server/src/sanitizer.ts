@@ -29,8 +29,7 @@ export class Sanitizer {
       description: 'Authorization headers',
     },
     {
-      pattern:
-        /\b(?:password|secret|api_?key|token)\s*[:=]\s*["']?([^\s,}"']+)["']?/gi,
+      pattern: /\b(?:password|secret|api_?key|token)\s*[:=]\s*["']?([^\s,}"']+)["']?/gi,
       replacement: '$1: [MASKED]',
       description: 'Password/secret key-value pairs',
     },
@@ -40,8 +39,7 @@ export class Sanitizer {
       description: 'Credit card numbers',
     },
     {
-      pattern:
-        /https?:\/\/([^:]+):([^@]+)@/g,
+      pattern: /https?:\/\/([^:]+):([^@]+)@/g,
       replacement: 'https://[USER]:[PASS]@',
       description: 'URL credentials',
     },
@@ -57,9 +55,9 @@ export class Sanitizer {
     },
   ];
 
-  private enabled: boolean = true;
+  private enabled = true;
 
-  constructor(enabled: boolean = true) {
+  constructor(enabled = true) {
     this.enabled = enabled;
   }
 

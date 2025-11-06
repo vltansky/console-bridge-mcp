@@ -1,4 +1,4 @@
-import type { LogMessage, LogLevel } from '@console-mcp/shared';
+import type { LogLevel, LogMessage } from '@console-mcp/shared';
 
 const levels = ['log', 'info', 'warn', 'error', 'debug'] as const;
 
@@ -52,7 +52,7 @@ function serializeArg(arg: unknown): unknown {
       case 'bigint':
         return `[BigInt: ${arg.toString()}]`;
 
-      case 'object':
+      case 'object': {
         if (arg instanceof Error) {
           return {
             name: arg.name,
@@ -114,6 +114,7 @@ function serializeArg(arg: unknown): unknown {
         };
 
         return serialize(arg);
+      }
 
       default:
         return String(arg);
@@ -127,10 +128,10 @@ export function interceptConsole(onLog: (data: LogMessage) => void): void {
   // Store original console methods
   const originals = new Map<LogLevel, any>();
 
-  levels.forEach((level) => {
+  for (const level of levels) {
     originals.set(level, console[level]);
 
-    console[level] = function (...args: unknown[]) {
+    console[level] = (...args: unknown[]) => {
       // Get the stack trace
       const stack = new Error().stack;
 
@@ -152,9 +153,9 @@ export function interceptConsole(onLog: (data: LogMessage) => void): void {
       });
 
       // Call original console method
-      return originals.get(level)!.apply(console, args);
+      return originals.get(level)?.apply(console, args);
     };
-  });
+  }
 
   // Intercept unhandled errors
   window.addEventListener('error', (event) => {
@@ -191,8 +192,7 @@ export function interceptConsole(onLog: (data: LogMessage) => void): void {
         level: 'error',
         message: `Unhandled Promise Rejection: ${event.reason}`,
         args: [serializeArg(event.reason)],
-        stack:
-          event.reason instanceof Error ? event.reason.stack : undefined,
+        stack: event.reason instanceof Error ? event.reason.stack : undefined,
         tabId: currentTabId,
         url: window.location.href,
         sessionId: getSessionId(),

@@ -1,4 +1,4 @@
-import type { LogMessage, FilterOptions } from '@console-mcp/shared';
+import type { FilterOptions, LogMessage } from '@console-mcp/shared';
 
 export class FilterEngine {
   filter(logs: LogMessage[], options: FilterOptions): LogMessage[] {
@@ -6,7 +6,7 @@ export class FilterEngine {
 
     // Level filter
     if (options.levels?.length) {
-      filtered = filtered.filter((log) => options.levels!.includes(log.level));
+      filtered = filtered.filter((log) => options.levels?.includes(log.level));
     }
 
     // Time filter - after
@@ -87,7 +87,7 @@ export class FilterEngine {
     // Handle relative time (e.g., "5m", "1h", "24h")
     const relativeMatch = time.match(/^(\d+)([mh])$/);
     if (relativeMatch) {
-      const value = parseInt(relativeMatch[1]);
+      const value = Number.parseInt(relativeMatch[1]);
       const unit = relativeMatch[2];
       const multiplier = unit === 'h' ? 3600000 : 60000;
       return Date.now() - value * multiplier;

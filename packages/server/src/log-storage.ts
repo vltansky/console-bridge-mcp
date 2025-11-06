@@ -1,4 +1,4 @@
-import type { LogMessage, FilterOptions } from '@console-mcp/shared';
+import type { FilterOptions, LogMessage } from '@console-mcp/shared';
 import { FilterEngine } from './filter-engine.js';
 
 export interface LogStorageConfig {
@@ -43,7 +43,7 @@ export class LogStorage {
     if (!this.logsByTab.has(log.tabId)) {
       this.logsByTab.set(log.tabId, []);
     }
-    this.logsByTab.get(log.tabId)!.push(log);
+    this.logsByTab.get(log.tabId)?.push(log);
 
     // Notify subscribers
     for (const { callback, filter } of this.subscribers) {
@@ -83,8 +83,7 @@ export class LogStorage {
     this.logs = this.logs.filter((log) => {
       const shouldKeep =
         (filter.tabId !== undefined && log.tabId !== filter.tabId) ||
-        (filter.before !== undefined &&
-          log.timestamp >= new Date(filter.before).getTime());
+        (filter.before !== undefined && log.timestamp >= new Date(filter.before).getTime());
 
       // Update tab index
       if (!shouldKeep) {
@@ -101,10 +100,7 @@ export class LogStorage {
     });
   }
 
-  subscribe(
-    callback: (log: LogMessage) => void,
-    filter?: FilterOptions,
-  ): () => void {
+  subscribe(callback: (log: LogMessage) => void, filter?: FilterOptions): () => void {
     const subscriber = { callback, filter };
     this.subscribers.add(subscriber);
     return () => this.subscribers.delete(subscriber);

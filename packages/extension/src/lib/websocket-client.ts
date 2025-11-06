@@ -3,8 +3,6 @@ import type { ExtensionMessage, ServerMessage } from '@console-mcp/shared';
 export interface WebSocketClientConfig {
   url: string;
   maxReconnectAttempts?: number;
-  batchSize?: number;
-  batchInterval?: number;
 }
 
 export class WebSocketClient {
@@ -13,8 +11,6 @@ export class WebSocketClient {
   private messageQueue: ExtensionMessage[] = [];
   private reconnectTimeout?: number;
   private heartbeatInterval?: number;
-  private batchTimeout?: number;
-  private pendingBatch: ExtensionMessage[] = [];
 
   private readonly config: Required<WebSocketClientConfig>;
   private onMessageCallback?: (message: ServerMessage) => void;
@@ -23,9 +19,7 @@ export class WebSocketClient {
   constructor(config: WebSocketClientConfig) {
     this.config = {
       url: config.url,
-      maxReconnectAttempts: config.maxReconnectAttempts ?? Infinity,
-      batchSize: config.batchSize ?? 50,
-      batchInterval: config.batchInterval ?? 100,
+      maxReconnectAttempts: config.maxReconnectAttempts ?? Number.POSITIVE_INFINITY,
     };
   }
 
@@ -76,19 +70,15 @@ export class WebSocketClient {
 
   private scheduleReconnect(): void {
     if (this.reconnectAttempts >= this.config.maxReconnectAttempts) {
-      console.error(
-        '[WebSocket] Max reconnection attempts reached, giving up',
-      );
+      console.error('[WebSocket] Max reconnection attempts reached, giving up');
       return;
     }
 
     // Exponential backoff with max 30 seconds
-    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
+    const delay = Math.min(1000 * 2 ** this.reconnectAttempts, 30000);
     this.reconnectAttempts++;
 
-    console.log(
-      `[WebSocket] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`,
-    );
+    console.log(`[WebSocket] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
 
     this.reconnectTimeout = window.setTimeout(() => {
       this.connect();
@@ -103,8 +93,10 @@ export class WebSocketClient {
     console.log(`[WebSocket] Flushing ${this.messageQueue.length} queued messages`);
 
     while (this.messageQueue.length > 0) {
-      const message = this.messageQueue.shift()!;
-      this.sendImmediate(message);
+      const message = this.messageQueue.shift();
+      if (message) {
+        this.sendImmediate(message);
+      }
     }
   }
 
@@ -122,40 +114,10 @@ export class WebSocketClient {
   }
 
   send(message: ExtensionMessage): void {
-    // Batch log messages for efficiency
-    if (message.type === 'log') {
-      this.pendingBatch.push(message);
-
-      if (this.pendingBatch.length >= this.config.batchSize) {
-        this.flushBatch();
-      } else if (!this.batchTimeout) {
-        this.batchTimeout = window.setTimeout(() => {
-          this.flushBatch();
-        }, this.config.batchInterval);
-      }
-    } else {
-      // Send non-log messages immediately
-      this.sendImmediate(message);
-    }
+    // Send all messages immediately to avoid batching issues in service workers
+    this.sendImmediate(message);
   }
 
-  private flushBatch(): void {
-    if (this.batchTimeout) {
-      clearTimeout(this.batchTimeout);
-      this.batchTimeout = undefined;
-    }
-
-    if (this.pendingBatch.length === 0) {
-      return;
-    }
-
-    // Send each message in the batch
-    for (const message of this.pendingBatch) {
-      this.sendImmediate(message);
-    }
-
-    this.pendingBatch = [];
-  }
 
   private startHeartbeat(): void {
     this.heartbeatInterval = window.setInterval(() => {
@@ -208,7 +170,6 @@ export class WebSocketClient {
     }
 
     this.stopHeartbeat();
-    this.flushBatch();
 
     if (this.ws) {
       this.ws.close();
@@ -230,6 +191,6 @@ export class WebSocketClient {
   }
 
   getQueueLength(): number {
-    return this.messageQueue.length + this.pendingBatch.length;
+    return this.messageQueue.length;
   }
 }

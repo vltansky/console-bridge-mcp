@@ -1,8 +1,8 @@
 // This is a placeholder - in a real project, you would generate proper icons
 // For now, we'll create SVG placeholders
 
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const sizes = [16, 48, 128];
 const publicDir = path.join(__dirname, '../public');

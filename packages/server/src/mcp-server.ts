@@ -1,20 +1,13 @@
+import type { FilterOptions, KeywordSearchParams, SearchParams } from '@console-mcp/shared';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
-import type { LogStorage } from './log-storage.js';
-import type { ConsoleWebSocketServer } from './websocket-server.js';
-import { SearchEngine } from './search-engine.js';
-import { Sanitizer } from './sanitizer.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { ExportEngine } from './export-engine.js';
+import type { LogStorage } from './log-storage.js';
+import { Sanitizer } from './sanitizer.js';
+import { SearchEngine } from './search-engine.js';
 import { SessionManager } from './session-manager.js';
-import type {
-  FilterOptions,
-  SearchParams,
-  KeywordSearchParams,
-} from '@console-mcp/shared';
+import type { ConsoleWebSocketServer } from './websocket-server.js';
 
 export class McpServer {
   private server: Server;
@@ -170,8 +163,7 @@ export class McpServer {
         },
         {
           name: 'console_search_keywords',
-          description:
-            'Search logs using keyword matching with AND/OR logic and exclusions',
+          description: 'Search logs using keyword matching with AND/OR logic and exclusions',
           inputSchema: {
             type: 'object',
             properties: {
@@ -206,8 +198,7 @@ export class McpServer {
         },
         {
           name: 'console_tail_logs',
-          description:
-            'Stream/tail new logs in real-time with optional filtering',
+          description: 'Stream/tail new logs in real-time with optional filtering',
           inputSchema: {
             type: 'object',
             properties: {
@@ -531,9 +522,7 @@ export class McpServer {
     lines?: number;
   }) {
     const lines = args.lines || 10;
-    const allLogs = args.filter
-      ? this.storage.getAll(args.filter)
-      : this.storage.getAll();
+    const allLogs = args.filter ? this.storage.getAll(args.filter) : this.storage.getAll();
     const recentLogs = allLogs.slice(-lines);
 
     // Note: This is a simplified implementation
@@ -546,8 +535,7 @@ export class McpServer {
             {
               logs: recentLogs,
               total: allLogs.length,
-              message:
-                'Note: Real-time streaming requires MCP sampling support',
+              message: 'Note: Real-time streaming requires MCP sampling support',
             },
             null,
             2,
@@ -687,6 +675,5 @@ export class McpServer {
   async start(): Promise<void> {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    console.error('[MCP] Server started on stdio');
   }
 }
