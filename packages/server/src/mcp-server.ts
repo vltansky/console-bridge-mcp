@@ -102,12 +102,22 @@ export class McpServer {
                 default: false,
                 description: 'Apply sanitization to mask sensitive data',
               },
+              includeArgs: {
+                type: 'boolean',
+                default: false,
+                description: 'Include args array in response (can be large)',
+              },
+              includeStack: {
+                type: 'boolean',
+                default: false,
+                description: 'Include stack traces in response (can be large)',
+              },
             },
           },
         },
         {
           name: 'console_get_log',
-          description: 'Get a specific log by ID',
+          description: 'Get a specific log by ID with full details (args, stack, etc.)',
           inputSchema: {
             type: 'object',
             properties: {
@@ -146,8 +156,8 @@ export class McpServer {
                   type: 'string',
                   enum: ['message', 'args', 'stack'],
                 },
-                default: ['message', 'args', 'stack'],
-                description: 'Fields to search in',
+                default: ['message'],
+                description: 'Fields to search in (default: message only for smaller response)',
               },
               contextLines: {
                 type: 'number',
@@ -162,6 +172,16 @@ export class McpServer {
               filter: {
                 type: 'object',
                 description: 'Additional filters (same as console_list_logs)',
+              },
+              includeArgs: {
+                type: 'boolean',
+                default: false,
+                description: 'Include args array in results (can be large)',
+              },
+              includeStack: {
+                type: 'boolean',
+                default: false,
+                description: 'Include stack traces in results (can be large)',
               },
             },
             required: ['pattern'],
@@ -197,6 +217,16 @@ export class McpServer {
               filter: {
                 type: 'object',
                 description: 'Additional filters',
+              },
+              includeArgs: {
+                type: 'boolean',
+                default: false,
+                description: 'Include args array in results (can be large)',
+              },
+              includeStack: {
+                type: 'boolean',
+                default: false,
+                description: 'Include stack traces in results (can be large)',
               },
             },
             required: ['keywords'],
@@ -461,6 +491,8 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
     limit?: number;
     offset?: number;
     sanitize?: boolean;
+    includeArgs?: boolean;
+    includeStack?: boolean;
   }) {
     const filter: FilterOptions = {
       levels: args.levels as any,
@@ -484,21 +516,41 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
       logs = this.sanitizer.sanitizeMultiple(logs);
     }
 
+    // By default, exclude args and stack (minimal response)
+    // User can opt-in to include them
+    logs = logs.map((log) => {
+      const minimal: any = {
+        id: log.id,
+        timestamp: log.timestamp,
+        level: log.level,
+        message: log.message,
+        tabId: log.tabId,
+        url: log.url,
+        sessionId: log.sessionId,
+      };
+
+      if (args.includeArgs) {
+        minimal.args = log.args;
+      }
+
+      if (args.includeStack && log.stack) {
+        minimal.stack = log.stack;
+      }
+
+      return minimal;
+    });
+
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify(
-            {
-              logs,
-              total,
-              offset,
-              limit,
-              hasMore: offset + limit < total,
-            },
-            null,
-            2,
-          ),
+          text: JSON.stringify({
+            logs,
+            total,
+            offset,
+            limit,
+            hasMore: offset + limit < total,
+          }),
         },
       ],
     };
@@ -533,24 +585,44 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
     contextLines?: number;
     limit?: number;
     filter?: FilterOptions;
+    includeArgs?: boolean;
+    includeStack?: boolean;
   }) {
     const logs = args.filter ? this.storage.getAll(args.filter) : this.storage.getAll();
 
     const searchParams: SearchParams = {
       pattern: args.pattern,
       caseSensitive: args.caseSensitive,
-      fields: args.fields,
+      fields: args.fields || ['message'],
       contextLines: args.contextLines,
       limit: args.limit,
     };
 
     const result = this.searchEngine.search(logs, searchParams);
 
+    // Strip args/stack from results unless explicitly requested
+    if (!args.includeArgs || !args.includeStack) {
+      result.matches = result.matches.map((match) => ({
+        ...match,
+        log: this.stripLogFields(match.log, args.includeArgs, args.includeStack),
+        context: match.context
+          ? {
+              before: match.context.before.map((log) =>
+                this.stripLogFields(log, args.includeArgs, args.includeStack),
+              ),
+              after: match.context.after.map((log) =>
+                this.stripLogFields(log, args.includeArgs, args.includeStack),
+              ),
+            }
+          : undefined,
+      }));
+    }
+
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify(result, null, 2),
+          text: JSON.stringify(result),
         },
       ],
     };
@@ -562,6 +634,8 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
     exclude?: string[];
     limit?: number;
     filter?: FilterOptions;
+    includeArgs?: boolean;
+    includeStack?: boolean;
   }) {
     const logs = args.filter ? this.storage.getAll(args.filter) : this.storage.getAll();
 
@@ -574,11 +648,29 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
 
     const result = this.searchEngine.searchKeywords(logs, searchParams);
 
+    // Strip args/stack from results unless explicitly requested
+    if (!args.includeArgs || !args.includeStack) {
+      result.matches = result.matches.map((match) => ({
+        ...match,
+        log: this.stripLogFields(match.log, args.includeArgs, args.includeStack),
+        context: match.context
+          ? {
+              before: match.context.before.map((log) =>
+                this.stripLogFields(log, args.includeArgs, args.includeStack),
+              ),
+              after: match.context.after.map((log) =>
+                this.stripLogFields(log, args.includeArgs, args.includeStack),
+              ),
+            }
+          : undefined,
+      }));
+    }
+
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify(result, null, 2),
+          text: JSON.stringify(result),
         },
       ],
     };
@@ -738,6 +830,28 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
         },
       ],
     };
+  }
+
+  private stripLogFields(log: any, includeArgs?: boolean, includeStack?: boolean): any {
+    const minimal: any = {
+      id: log.id,
+      timestamp: log.timestamp,
+      level: log.level,
+      message: log.message,
+      tabId: log.tabId,
+      url: log.url,
+      sessionId: log.sessionId,
+    };
+
+    if (includeArgs && log.args) {
+      minimal.args = log.args;
+    }
+
+    if (includeStack && log.stack) {
+      minimal.stack = log.stack;
+    }
+
+    return minimal;
   }
 
   async start(): Promise<void> {
