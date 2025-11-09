@@ -6,12 +6,15 @@ import {
   ListToolsRequestSchema,
   ListPromptsRequestSchema,
   GetPromptRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { ExportEngine } from './export-engine.js';
 import type { LogStorage } from './log-storage.js';
 import { Sanitizer } from './sanitizer.js';
 import { SearchEngine } from './search-engine.js';
 import { SessionManager } from './session-manager.js';
+import { TabSuggester, type SuggestionContext } from './tab-suggester.js';
 import type { ConsoleWebSocketServer } from './websocket-server.js';
 
 export class McpServer {
@@ -22,6 +25,7 @@ export class McpServer {
   private sanitizer: Sanitizer;
   private exportEngine: ExportEngine;
   private sessionManager: SessionManager;
+  private tabSuggester: TabSuggester;
 
   constructor(storage: LogStorage, wsServer: ConsoleWebSocketServer) {
     this.storage = storage;
@@ -30,6 +34,7 @@ export class McpServer {
     this.sanitizer = new Sanitizer();
     this.exportEngine = new ExportEngine();
     this.sessionManager = new SessionManager();
+    this.tabSuggester = new TabSuggester();
 
     this.server = new Server(
       {
@@ -40,6 +45,7 @@ export class McpServer {
         capabilities: {
           tools: {},
           prompts: {},
+          resources: {},
         },
       },
     );
@@ -356,8 +362,83 @@ export class McpServer {
             properties: {},
           },
         },
+        {
+          name: 'console_suggest_tab',
+          description:
+            'Suggest the most relevant browser tab based on project context. Returns ranked tab suggestions with reasoning. Use this to intelligently select which tab to focus on.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              urlPatterns: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'URL patterns to match (regex or substring)',
+              },
+              workingDirectory: {
+                type: 'string',
+                description: 'Current working directory for project context',
+              },
+              ports: {
+                type: 'array',
+                items: { type: 'number' },
+                description: 'Expected port numbers (e.g., [3000, 5173])',
+              },
+              domains: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Expected domains (e.g., ["localhost", "myapp.dev"])',
+              },
+              limit: {
+                type: 'number',
+                default: 5,
+                description: 'Maximum number of suggestions to return',
+              },
+            },
+          },
+        },
       ],
     }));
+
+    // List available resources
+    this.server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+      resources: [
+        {
+          uri: 'console://context',
+          name: 'Project Context',
+          description: 'Current project context including working directory and environment',
+          mimeType: 'application/json',
+        },
+      ],
+    }));
+
+    // Handle resource reads
+    this.server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+      if (request.params.uri === 'console://context') {
+        const cwd = process.cwd();
+        const projectName = cwd.split(/[/\\]/).pop() || 'unknown';
+        const commonPorts = this.tabSuggester.detectCommonPorts(cwd);
+
+        return {
+          contents: [
+            {
+              uri: 'console://context',
+              mimeType: 'application/json',
+              text: JSON.stringify(
+                {
+                  workingDirectory: cwd,
+                  projectName,
+                  suggestedPorts: commonPorts,
+                  timestamp: Date.now(),
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      }
+      throw new Error(`Unknown resource: ${request.params.uri}`);
+    });
 
     // List available prompts
     this.server.setRequestHandler(ListPromptsRequestSchema, async () => ({
@@ -382,11 +463,14 @@ export class McpServer {
                 type: 'text',
                 text: `Use Console MCP tools to query browser console logs. Here are the available tools:
 
+**Tab Selection (Start Here):**
+- console_suggest_tab: Intelligently suggest relevant tabs based on project context
+- console_get_tabs: Get all active browser tabs with log counts
+
 **Query & Filter:**
 - console_list_logs: List logs with filtering (level, tab, URL, time range)
 - console_get_log: Get a specific log by ID
 - console_tail_logs: Stream recent logs in real-time
-- console_get_tabs: Get active browser tabs with log counts
 
 **Search:**
 - console_search_logs: Search logs using regex patterns
@@ -404,11 +488,20 @@ export class McpServer {
 - console_load_session: Load a previously saved session
 - console_list_sessions: List all saved sessions
 
+**Tab Selection Strategy:**
+1. If the user's query is about a specific project/site, use console_suggest_tab with:
+   - workingDirectory from console://context resource
+   - urlPatterns based on user context (e.g., ["localhost"], project name)
+   - ports from common dev servers (3000, 5173, 8080, etc.)
+2. Review suggestions and select the top-ranked tab (highest score)
+3. If multiple tabs have similar scores, ask the user to clarify
+4. Use the selected tab's ID in subsequent queries (tabId filter)
+
 **Common usage patterns:**
-- "show errors" → Use console_list_logs with levels: ["error"]
+- "show errors" → First suggest tab, then console_list_logs with levels: ["error"] and tabId
 - "from last X minutes" → Use after parameter with relative time like "5m", "1h"
-- "from localhost:3000" → Use urlPattern parameter with regex
-- "search for X" → Use console_search_logs or console_search_keywords
+- "from localhost:3000" → Use console_suggest_tab with ports: [3000]
+- "search for X" → Use console_search_logs or console_search_keywords with tabId filter
 - "statistics" → Use console_get_stats
 - "export" → Use console_export_logs
 
@@ -462,6 +555,9 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
 
           case 'console_get_stats':
             return await this.handleGetStats();
+
+          case 'console_suggest_tab':
+            return await this.handleSuggestTab(args as any);
 
           default:
             throw new Error(`Unknown tool: ${name}`);
@@ -827,6 +923,83 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
         {
           type: 'text',
           text: JSON.stringify(stats, null, 2),
+        },
+      ],
+    };
+  }
+
+  private async handleSuggestTab(args: {
+    urlPatterns?: string[];
+    workingDirectory?: string;
+    ports?: number[];
+    domains?: string[];
+    limit?: number;
+  }) {
+    const tabs = this.wsServer.getTabs();
+
+    if (tabs.length === 0) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                suggestions: [],
+                message:
+                  'No browser tabs currently connected. Make sure the Console MCP extension is installed and active.',
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    }
+
+    const context: SuggestionContext = {
+      urlPatterns: args.urlPatterns,
+      workingDirectory: args.workingDirectory || process.cwd(),
+      ports: args.ports,
+      domains: args.domains,
+    };
+
+    const suggestions = this.tabSuggester.suggestTabs(
+      tabs,
+      (tabId) => this.storage.getAll({ tabId }),
+      context,
+    );
+
+    const limit = args.limit || 5;
+    const topSuggestions = suggestions.slice(0, limit);
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              suggestions: topSuggestions.map((s) => ({
+                tabId: s.tab.id,
+                url: s.tab.url,
+                title: s.tab.title,
+                score: s.score,
+                reasons: s.reasons,
+                logCount: s.logCount,
+                lastActivity: s.lastActivity,
+              })),
+              total: suggestions.length,
+              context: {
+                workingDirectory: context.workingDirectory,
+                appliedFilters: {
+                  urlPatterns: args.urlPatterns,
+                  ports: args.ports,
+                  domains: args.domains,
+                },
+              },
+            },
+            null,
+            2,
+          ),
         },
       ],
     };

@@ -65,13 +65,14 @@ Console MCP fetches matching logs instantly, with full stack traces, timestamps,
 ## Features
 
 - 🔍 **Real-time Log Capture**: Browser extension captures console logs from all tabs
-- 🤖 **AI Integration**: Query logs using natural language through 12 MCP tools
+- 🤖 **AI Integration**: Query logs using natural language through 13 MCP tools
+- 🎯 **Smart Tab Selection**: Automatically suggest relevant tabs based on project context
 - 🔎 **Advanced Search**: Regex and keyword search with filtering by level, URL, time
 - 📊 **Session Management**: Save and restore log sessions for debugging
 - 🔒 **Data Sanitization**: Automatically mask sensitive information (tokens, keys)
 - 📤 **Export**: Export logs in JSON, CSV, or plain text formats
 - ⚡ **Lightweight**: Batched WebSocket protocol, minimal performance impact
-- 🎯 **Tab Awareness**: Filter logs by specific tabs, URLs, or sessions
+- 📁 **Project Context**: MCP resources expose working directory and environment info
 
 ---
 
@@ -242,6 +243,11 @@ Search console logs for "authentication failed" or "401"
 List warning logs from localhost:3000/checkout
 ```
 
+**Smart tab selection:**
+```
+Which tab should I focus on for this project?
+```
+
 **Get statistics:**
 ```
 Show console log statistics grouped by level
@@ -261,13 +267,16 @@ Save current console logs as session "bug-investigation-2025"
 
 ## MCP Tools Reference
 
-Console MCP provides 12 tools for comprehensive log management:
+Console MCP provides 13 tools for comprehensive log management:
+
+### Tab Selection
+- **`console_suggest_tab`** - Intelligently suggest relevant tabs based on project context (working directory, ports, URL patterns)
+- **`console_get_tabs`** - Get active browser tabs with log counts
 
 ### Query & Filter
 - **`console_list_logs`** - List logs with filtering by level, tab, URL, time range
 - **`console_get_log`** - Get a specific log entry by ID
 - **`console_tail_logs`** - Stream the most recent logs (live feed)
-- **`console_get_tabs`** - Get active browser tabs with log counts
 
 ### Search
 - **`console_search_logs`** - Search using regex patterns
@@ -284,6 +293,9 @@ Console MCP provides 12 tools for comprehensive log management:
 - **`console_save_session`** - Save current logs as a named session
 - **`console_load_session`** - Load a previously saved session
 - **`console_list_sessions`** - List all saved sessions
+
+### Resources
+- **`console://context`** - Project context resource (working directory, suggested ports, project name)
 
 ---
 
@@ -324,7 +336,7 @@ Console MCP uses a three-component architecture:
 
 ### Packages
 
-- **`@console-mcp/server`**: MCP server exposing 12 tools + WebSocket server
+- **`@console-mcp/server`**: MCP server exposing 13 tools + WebSocket server
 - **`@console-mcp/extension`**: Chrome/Edge extension capturing console logs
 - **`@console-mcp/shared`**: Shared TypeScript types and Zod schemas
 
@@ -380,6 +392,7 @@ console-mcp/
 │   │   │   ├── log-storage.ts        # In-memory storage
 │   │   │   ├── filter-engine.ts      # Log filtering
 │   │   │   ├── search-engine.ts      # Regex/keyword search
+│   │   │   ├── tab-suggester.ts      # Intelligent tab suggestions
 │   │   │   ├── sanitizer.ts          # Data sanitization
 │   │   │   ├── export-engine.ts      # Export to JSON/CSV/text
 │   │   │   └── session-manager.ts    # Session save/load
