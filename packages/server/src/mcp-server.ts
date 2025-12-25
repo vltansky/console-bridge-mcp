@@ -1,4 +1,4 @@
-import type { FilterOptions, KeywordSearchParams, SearchParams } from '@console-mcp/shared';
+import type { FilterOptions, KeywordSearchParams, SearchParams } from 'console-logs-mcp-shared';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -317,7 +317,7 @@ export class McpServer {
         },
         {
           name: 'console_save_session',
-          description: 'Save current logs as a session',
+          description: 'Save current logs as a named session for later retrieval',
           inputSchema: {
             type: 'object',
             properties: {
@@ -327,20 +327,24 @@ export class McpServer {
               },
               name: {
                 type: 'string',
-                description: 'Optional session name',
+                description: 'Optional human-readable session name (e.g., "bug-123", "auth-error-investigation")',
+              },
+              description: {
+                type: 'string',
+                description: 'Optional description of what this session contains',
               },
             },
           },
         },
         {
           name: 'console_load_session',
-          description: 'Load logs from a saved session',
+          description: 'Load logs from a saved session by ID or name',
           inputSchema: {
             type: 'object',
             properties: {
               sessionId: {
                 type: 'string',
-                description: 'Session ID',
+                description: 'Session ID or name (e.g., "bug-123" or UUID)',
               },
             },
             required: ['sessionId'],
@@ -394,6 +398,68 @@ export class McpServer {
                 description: 'Maximum number of suggestions to return',
               },
             },
+          },
+        },
+        {
+          name: 'console_execute_js',
+          description:
+            'Execute JavaScript code in the browser tab context. Useful for reproducing issues, testing fixes, or querying application state.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              code: {
+                type: 'string',
+                description: 'JavaScript code to execute',
+              },
+              tabId: {
+                type: 'number',
+                description: 'Optional tab ID (if not provided, executes in active tab)',
+              },
+            },
+            required: ['code'],
+          },
+        },
+        {
+          name: 'console_get_page_info',
+          description:
+            'Get information about the current page (title, URL, optionally HTML). Useful for understanding page context during debugging.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              tabId: {
+                type: 'number',
+                description: 'Optional tab ID',
+              },
+              includeHtml: {
+                type: 'boolean',
+                default: false,
+                description: 'Include full page HTML (can be large)',
+              },
+            },
+          },
+        },
+        {
+          name: 'console_query_dom',
+          description:
+            'Query DOM elements using CSS selectors and extract properties. Useful for inspecting page state and element attributes.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              selector: {
+                type: 'string',
+                description: 'CSS selector (e.g., ".error-message", "#submit-btn")',
+              },
+              tabId: {
+                type: 'number',
+                description: 'Optional tab ID',
+              },
+              properties: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Element properties to extract (e.g., ["textContent", "className", "value"])',
+              },
+            },
+            required: ['selector'],
           },
         },
       ],
@@ -558,6 +624,15 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
 
           case 'console_suggest_tab':
             return await this.handleSuggestTab(args as any);
+
+          case 'console_execute_js':
+            return await this.handleExecuteJS(args as any);
+
+          case 'console_get_page_info':
+            return await this.handleGetPageInfo(args as any);
+
+          case 'console_query_dom':
+            return await this.handleQueryDOM(args as any);
 
           default:
             throw new Error(`Unknown tool: ${name}`);
@@ -862,15 +937,28 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
   private async handleSaveSession(args: {
     filter?: FilterOptions;
     name?: string;
+    description?: string;
   }) {
     const logs = args.filter ? this.storage.getAll(args.filter) : this.storage.getAll();
-    const sessionId = this.sessionManager.save(logs, args.name);
+    const sessionId = this.sessionManager.save(logs, args.name, args.description);
 
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify({ sessionId, logCount: logs.length }, null, 2),
+          text: JSON.stringify(
+            {
+              sessionId,
+              name: args.name,
+              description: args.description,
+              logCount: logs.length,
+              message: args.name
+                ? `Session saved as "${args.name}" (ID: ${sessionId})`
+                : `Session saved with ID: ${sessionId}`,
+            },
+            null,
+            2,
+          ),
         },
       ],
     };
@@ -1025,6 +1113,84 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
     }
 
     return minimal;
+  }
+
+  private async handleExecuteJS(args: { code: string; tabId?: number }) {
+    try {
+      const result = await this.wsServer.executeJS(args.code, args.tabId);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: true,
+                result,
+                code: args.code,
+                tabId: args.tabId,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to execute JavaScript: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private async handleGetPageInfo(args: { tabId?: number; includeHtml?: boolean }) {
+    try {
+      const pageInfo = await this.wsServer.getPageInfo(args.tabId, args.includeHtml);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                title: pageInfo.title,
+                url: pageInfo.url,
+                html: pageInfo.html,
+                tabId: args.tabId,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to get page info: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private async handleQueryDOM(args: { selector: string; tabId?: number; properties?: string[] }) {
+    try {
+      const elements = await this.wsServer.queryDOM(args.selector, args.tabId, args.properties);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                selector: args.selector,
+                elements,
+                count: elements.length,
+                tabId: args.tabId,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Failed to query DOM: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   async start(): Promise<void> {

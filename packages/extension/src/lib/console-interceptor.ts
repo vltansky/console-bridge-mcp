@@ -1,4 +1,4 @@
-import type { LogLevel, LogMessage } from '@console-mcp/shared';
+import type { LogLevel, LogMessage } from 'console-logs-mcp-shared';
 
 const levels = ['log', 'info', 'warn', 'error', 'debug'] as const;
 

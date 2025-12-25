@@ -1,9 +1,9 @@
-import type { LogMessage, TabInfo } from '@console-mcp/shared';
+import type { LogMessage, TabInfo } from 'console-logs-mcp-shared';
 import { WebSocketClient } from './lib/websocket-client';
 
 // Discovery configuration
-const DISCOVERY_PORT = 3332;
-const FALLBACK_PORTS = [3333, 3334, 3335];
+const DISCOVERY_PORT = 9846;
+const FALLBACK_PORTS = [9847, 9848, 9849];
 
 // Initialize WebSocket client (assigned during initialize)
 let wsClient: WebSocketClient;
@@ -83,7 +83,7 @@ async function discoverServerUrl(): Promise<string> {
   }
 
   // 3) Default fallback
-  return 'ws://localhost:3333';
+  return 'ws://localhost:9847';
 }
 
 // Initialize settings and connect immediately
@@ -107,6 +107,11 @@ async function initialize() {
   if (isEnabled) {
     wsClient.connect();
   }
+
+  // Handle incoming messages from server (browser commands)
+  wsClient.onMessage(async (message) => {
+    await handleServerMessage(message);
+  });
 }
 
 // Initialize extension
@@ -197,6 +202,53 @@ function handleConsoleLog(log: LogMessage, sender: chrome.runtime.MessageSender)
     type: 'log',
     data: logWithTabId,
   });
+}
+
+async function handleServerMessage(message: any): Promise<void> {
+  // Handle browser commands from server
+  if (message.type === 'execute_js' || message.type === 'get_page_info' || message.type === 'query_dom') {
+    const targetTabId = message.data.tabId;
+
+    // If no tabId specified, use active tab
+    let tabId = targetTabId;
+    if (!tabId) {
+      const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      tabId = activeTabs[0]?.id;
+    }
+
+    if (!tabId) {
+      console.error('[Background] No target tab found for command');
+      // Send error response back to server
+      wsClient.send({
+        type: `${message.type}_response`,
+        data: {
+          requestId: message.data.requestId,
+          error: 'No target tab found',
+        },
+      } as any);
+      return;
+    }
+
+    try {
+      // Forward command to content script
+      const response = await chrome.tabs.sendMessage(tabId, message);
+
+      // Forward response back to server
+      if (response) {
+        wsClient.send(response);
+      }
+    } catch (error) {
+      console.error('[Background] Failed to send command to content script:', error);
+      // Send error response back to server
+      wsClient.send({
+        type: `${message.type}_response`,
+        data: {
+          requestId: message.data.requestId,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      } as any);
+    }
+  }
 }
 
 // Handle tab closure

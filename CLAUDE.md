@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Console MCP is an MCP (Model Context Protocol) server that captures browser console logs in real-time via a browser extension and provides AI assistants with tools to query, search, and analyze these logs. The system consists of three packages in a monorepo:
+console-logs-mcp is an MCP (Model Context Protocol) server that captures browser console logs in real-time via a browser extension and provides AI assistants with tools to query, search, and analyze these logs. The system consists of three packages in a monorepo:
 
-- **`@console-mcp/server`**: MCP server with WebSocket server for receiving logs from browser extension
-- **`@console-mcp/extension`**: Chrome/Edge browser extension that captures console logs
-- **`@console-mcp/shared`**: Shared TypeScript types and Zod schemas
+- **`console-logs-mcp`**: MCP server with WebSocket server for receiving logs from browser extension
+- **`console-logs-mcp-extension`**: Chrome/Edge browser extension that captures console logs
+- **`console-logs-mcp-shared`**: Shared TypeScript types and Zod schemas
 
 ## Architecture
 
@@ -18,7 +18,7 @@ The server follows a modular architecture with specialized engines:
 
 - **`index.ts`**: Entry point that initializes LogStorage, ConsoleWebSocketServer, and McpServer
 - **`mcp-server.ts`**: Core MCP server implementation exposing 12 tools for log querying
-- **`websocket-server.ts`**: WebSocket server (port 3333) receiving log batches from extension
+- **`websocket-server.ts`**: WebSocket server (port 9847) receiving log batches from extension
 - **`log-storage.ts`**: In-memory log storage with filtering and pagination
 - **`filter-engine.ts`**: Filters logs by level, tab, URL pattern, time range, session
 - **`search-engine.ts`**: Regex and keyword search with context lines
@@ -60,7 +60,7 @@ npm run dev:server
 npm run dev:extension
 
 # Start production server
-npm run start -w @console-mcp/server
+npm run start -w console-logs-mcp
 ```
 
 ### Testing & Linting
@@ -88,7 +88,7 @@ After running `npm run build` or `npm run dev:extension`:
 
 Server configuration via environment variables:
 
-- `CONSOLE_MCP_PORT=3333` - WebSocket server port
+- `CONSOLE_MCP_PORT=9847` - WebSocket server port
 - `CONSOLE_MCP_MAX_LOGS=10000` - Maximum logs to store in memory
 - `CONSOLE_MCP_SANITIZE_LOGS=true` - Enable/disable sanitization
 - `CONSOLE_MCP_BATCH_SIZE=50` - Batch size for log sending
@@ -109,7 +109,7 @@ Server configuration via environment variables:
 - `noExplicitAny` disabled (explicit any allowed)
 
 ### Type Safety
-- Shared types in `@console-mcp/shared` imported by both server and extension
+- Shared types in `console-logs-mcp-shared` imported by both server and extension
 - Zod schemas for WebSocket protocol validation
 - All log messages conform to `LogMessage` interface
 - Extension/Server messages use discriminated unions

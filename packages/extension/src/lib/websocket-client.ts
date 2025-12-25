@@ -1,4 +1,4 @@
-import type { ExtensionMessage, ServerMessage } from '@console-mcp/shared';
+import type { ExtensionMessage, ServerMessage } from 'console-logs-mcp-shared';
 
 export interface WebSocketClientConfig {
   url: string;

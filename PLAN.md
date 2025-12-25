@@ -210,7 +210,7 @@ export class WebSocketClient {
 ```typescript
 import { WebSocketClient } from './lib/websocket-client';
 
-const wsClient = new WebSocketClient('ws://localhost:3333');
+const wsClient = new WebSocketClient('ws://localhost:9847');
 const tabLogs = new Map<number, number>(); // tabId -> log count
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -311,7 +311,7 @@ export class ConsoleWebSocketServer {
   private wss: WebSocketServer;
   private clients = new Set<WebSocket>();
 
-  constructor(port: number = 3333) {
+  constructor(port: number = 9847) {
     this.wss = new WebSocketServer({ port, host: 'localhost' });
     this.wss.on('connection', this.handleConnection);
   }
@@ -338,7 +338,7 @@ export class ConsoleWebSocketServer {
 ```
 
 **Actions:**
-- [ ] Create WebSocket server on port 3333
+- [ ] Create WebSocket server on port 9847
 - [ ] Listen on localhost only (security)
 - [ ] Handle client connections/disconnections
 - [ ] Parse and validate incoming messages
@@ -529,7 +529,7 @@ const storage = new LogStorage({
 });
 
 const wsServer = new ConsoleWebSocketServer(
-  parseInt(process.env.CONSOLE_MCP_PORT || '3333'),
+  parseInt(process.env.CONSOLE_MCP_PORT || '9847'),
   storage
 );
 
@@ -955,7 +955,7 @@ docs/
 
 **Environment Variables:**
 ```bash
-CONSOLE_MCP_PORT=3333
+CONSOLE_MCP_PORT=9847
 CONSOLE_MCP_MAX_LOGS=10000
 CONSOLE_MCP_SANITIZE_LOGS=true
 CONSOLE_MCP_BATCH_SIZE=50

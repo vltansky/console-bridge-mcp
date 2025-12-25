@@ -195,7 +195,7 @@ Standard MCP protocol with custom tools (see Tools section)
 **Description**: Real-time bidirectional communication between extension and server
 
 **Requirements**:
-- WebSocket server on configurable port (default: 3333)
+- WebSocket server on configurable port (default: 9847)
 - Auto-reconnect with exponential backoff
 - Message queuing during disconnection
 - Heartbeat/ping-pong for connection health
@@ -530,7 +530,7 @@ Export logs to file.
 **Environment Variables**:
 ```bash
 # Server settings
-CONSOLE_MCP_PORT=3333                    # WebSocket port
+CONSOLE_MCP_PORT=9847                    # WebSocket port
 CONSOLE_MCP_HOST=localhost               # WebSocket host
 CONSOLE_MCP_MAX_LOGS=10000              # Max logs in memory
 CONSOLE_MCP_LOG_RETENTION_HOURS=24      # Auto-delete old logs
@@ -553,7 +553,7 @@ CONSOLE_MCP_BATCH_INTERVAL_MS=100       # Extension batch interval
       "command": "npx",
       "args": ["-y", "console-mcp@latest"],
       "env": {
-        "CONSOLE_MCP_PORT": "3333",
+        "CONSOLE_MCP_PORT": "9847",
         "CONSOLE_MCP_SANITIZE_LOGS": "true"
       }
     }
@@ -566,7 +566,7 @@ CONSOLE_MCP_BATCH_INTERVAL_MS=100       # Extension batch interval
 **Extension Settings** (stored in chrome.storage):
 ```typescript
 interface ExtensionSettings {
-  serverUrl: string;              // Default: ws://localhost:3333
+  serverUrl: string;              // Default: ws://localhost:9847
   logLevels: string[];            // Default: all levels
   sanitize: boolean;              // Default: true
   maxBufferSize: number;          // Default: 1000

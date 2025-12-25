@@ -4,7 +4,7 @@ import type {
   SearchMatch,
   SearchParams,
   SearchResult,
-} from '@console-mcp/shared';
+} from 'console-logs-mcp-shared';
 
 export class SearchEngine {
   search(logs: LogMessage[], params: SearchParams): SearchResult {

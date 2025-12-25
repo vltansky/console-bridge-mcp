@@ -1,4 +1,4 @@
-import type { TabInfo, LogMessage } from '@console-mcp/shared';
+import type { TabInfo, LogMessage } from 'console-logs-mcp-shared';
 
 export interface TabSuggestion {
   tab: TabInfo;

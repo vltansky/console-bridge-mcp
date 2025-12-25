@@ -1,4 +1,4 @@
-import type { FilterOptions, LogMessage } from '@console-mcp/shared';
+import type { FilterOptions, LogMessage } from 'console-logs-mcp-shared';
 
 export class FilterEngine {
   filter(logs: LogMessage[], options: FilterOptions): LogMessage[] {

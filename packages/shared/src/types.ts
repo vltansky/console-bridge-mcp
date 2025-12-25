@@ -34,7 +34,16 @@ export type ExtensionMessage =
 // WebSocket protocol - Server to Extension
 export type ServerMessage =
   | { type: 'configure'; data: { logLevels: LogLevel[]; sanitize: boolean } }
-  | { type: 'ping'; data: { timestamp: number } };
+  | { type: 'ping'; data: { timestamp: number } }
+  | { type: 'execute_js'; data: { requestId: string; code: string; tabId?: number } }
+  | { type: 'get_page_info'; data: { requestId: string; tabId?: number; includeHtml?: boolean } }
+  | { type: 'query_dom'; data: { requestId: string; selector: string; tabId?: number; properties?: string[] } };
+
+// Browser command responses
+export type BrowserCommandResponse =
+  | { type: 'execute_js_response'; data: { requestId: string; result?: unknown; error?: string } }
+  | { type: 'page_info_response'; data: { requestId: string; title: string; url: string; html?: string; error?: string } }
+  | { type: 'query_dom_response'; data: { requestId: string; elements: Array<{ selector: string; properties: Record<string, unknown> }>; error?: string } };
 
 // Filter options for querying logs
 export interface FilterOptions {
@@ -81,11 +90,14 @@ export interface SearchResult {
 // Session information
 export interface Session {
   id: string;
+  name?: string; // Optional human-readable name
+  description?: string; // Optional description
   startTime: number;
   endTime: number;
   logCount: number;
   tabs: number[];
   logs: LogMessage[];
+  created: number; // Timestamp when session was created
 }
 
 // Zod schemas for runtime validation
@@ -140,6 +152,65 @@ export const ServerMessageSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('ping'),
     data: z.object({ timestamp: z.number() }),
+  }),
+  z.object({
+    type: z.literal('execute_js'),
+    data: z.object({
+      requestId: z.string(),
+      code: z.string(),
+      tabId: z.number().optional(),
+    }),
+  }),
+  z.object({
+    type: z.literal('get_page_info'),
+    data: z.object({
+      requestId: z.string(),
+      tabId: z.number().optional(),
+      includeHtml: z.boolean().optional(),
+    }),
+  }),
+  z.object({
+    type: z.literal('query_dom'),
+    data: z.object({
+      requestId: z.string(),
+      selector: z.string(),
+      tabId: z.number().optional(),
+      properties: z.array(z.string()).optional(),
+    }),
+  }),
+]);
+
+export const BrowserCommandResponseSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('execute_js_response'),
+    data: z.object({
+      requestId: z.string(),
+      result: z.unknown().optional(),
+      error: z.string().optional(),
+    }),
+  }),
+  z.object({
+    type: z.literal('page_info_response'),
+    data: z.object({
+      requestId: z.string(),
+      title: z.string(),
+      url: z.string(),
+      html: z.string().optional(),
+      error: z.string().optional(),
+    }),
+  }),
+  z.object({
+    type: z.literal('query_dom_response'),
+    data: z.object({
+      requestId: z.string(),
+      elements: z.array(
+        z.object({
+          selector: z.string(),
+          properties: z.record(z.unknown()),
+        }),
+      ),
+      error: z.string().optional(),
+    }),
   }),
 ]);
 

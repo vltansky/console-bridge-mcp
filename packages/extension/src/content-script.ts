@@ -1,4 +1,4 @@
-import type { LogMessage } from '@console-mcp/shared';
+import type { LogMessage, ServerMessage, BrowserCommandResponse } from 'console-logs-mcp-shared';
 import { interceptConsole } from './lib/console-interceptor';
 
 // Install console interceptor
@@ -17,5 +17,130 @@ interceptConsole((logData: LogMessage) => {
       }
     });
 });
+
+// Listen for commands from background script
+chrome.runtime.onMessage.addListener((message: ServerMessage, _sender, sendResponse) => {
+  handleCommand(message)
+    .then((response) => {
+      sendResponse(response);
+    })
+    .catch((error) => {
+      sendResponse({
+        error: error instanceof Error ? error.message : String(error),
+      });
+    });
+
+  // Return true to indicate async response
+  return true;
+});
+
+async function handleCommand(message: ServerMessage): Promise<any> {
+  switch (message.type) {
+    case 'execute_js': {
+      try {
+        // Execute code in page context
+        const result = eval(message.data.code);
+
+        const response: BrowserCommandResponse = {
+          type: 'execute_js_response',
+          data: {
+            requestId: message.data.requestId,
+            result,
+          },
+        };
+
+        return response;
+      } catch (error) {
+        const response: BrowserCommandResponse = {
+          type: 'execute_js_response',
+          data: {
+            requestId: message.data.requestId,
+            error: error instanceof Error ? error.message : String(error),
+          },
+        };
+
+        return response;
+      }
+    }
+
+    case 'get_page_info': {
+      try {
+        const response: BrowserCommandResponse = {
+          type: 'page_info_response',
+          data: {
+            requestId: message.data.requestId,
+            title: document.title,
+            url: window.location.href,
+            html: message.data.includeHtml ? document.documentElement.outerHTML : undefined,
+          },
+        };
+
+        return response;
+      } catch (error) {
+        const response: BrowserCommandResponse = {
+          type: 'page_info_response',
+          data: {
+            requestId: message.data.requestId,
+            title: '',
+            url: '',
+            error: error instanceof Error ? error.message : String(error),
+          },
+        };
+
+        return response;
+      }
+    }
+
+    case 'query_dom': {
+      try {
+        const elements = document.querySelectorAll(message.data.selector);
+        const defaultProperties = ['textContent', 'className', 'id', 'tagName'];
+        const propertiesToExtract = message.data.properties || defaultProperties;
+
+        const results = Array.from(elements).map((element) => {
+          const properties: Record<string, unknown> = {};
+
+          for (const prop of propertiesToExtract) {
+            try {
+              properties[prop] = (element as any)[prop];
+            } catch {
+              properties[prop] = undefined;
+            }
+          }
+
+          return {
+            selector: message.data.selector,
+            properties,
+          };
+        });
+
+        const response: BrowserCommandResponse = {
+          type: 'query_dom_response',
+          data: {
+            requestId: message.data.requestId,
+            elements: results,
+          },
+        };
+
+        return response;
+      } catch (error) {
+        const response: BrowserCommandResponse = {
+          type: 'query_dom_response',
+          data: {
+            requestId: message.data.requestId,
+            elements: [],
+            error: error instanceof Error ? error.message : String(error),
+          },
+        };
+
+        return response;
+      }
+    }
+
+    default:
+      // Not a command for content script
+      return null;
+  }
+}
 
 console.log('[Console MCP] Content script initialized');

@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Console MCP Capture",
+  "name": "console-logs-mcp",
   "version": "0.1.0",
   "description": "Captures browser console logs and sends them to MCP server for AI analysis",
   "permissions": ["activeTab", "storage", "tabs"],
