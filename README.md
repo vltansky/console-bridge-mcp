@@ -4,13 +4,9 @@
 
 # console-bridge
 
-**Control your Chrome browser from AI assistants**
+**Bridge browser console logs to AI assistants**
 
-Query console logs, execute JavaScript, and inspect DOM — all through natural language.
-
-[![NPM Version](https://img.shields.io/npm/v/console-bridge)](https://www.npmjs.com/package/console-bridge)
-[![License](https://img.shields.io/npm/l/console-bridge)](./LICENSE)
-[![MCP](https://img.shields.io/badge/MCP-Server-blue)](https://modelcontextprotocol.io)
+Capture, search, and debug console logs in real-time — all through natural language.
 
 </div>
 
