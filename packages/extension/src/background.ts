@@ -1,7 +1,12 @@
-import type { DiscoveryPayload, ExtensionMessage, LogMessage, TabInfo } from 'console-logs-mcp-shared';
-import { CONSOLE_MCP_IDENTIFIER } from 'console-logs-mcp-shared';
-import { WebSocketClient } from './lib/websocket-client';
+import type {
+  DiscoveryPayload,
+  ExtensionMessage,
+  LogMessage,
+  TabInfo,
+} from 'console-bridge-shared';
+import { CONSOLE_MCP_IDENTIFIER } from 'console-bridge-shared';
 import { Sanitizer } from './lib/sanitizer';
+import { WebSocketClient } from './lib/websocket-client';
 
 // Discovery configuration
 const DISCOVERY_PORT = 9846;
@@ -54,7 +59,11 @@ function sendTabEvent(type: 'tab_opened' | 'tab_updated', tabInfo: TabInfo): voi
   });
 }
 
-function createTabEntry(tabId: number, senderTab: chrome.tabs.Tab | undefined, sessionId: string): TabInfo {
+function createTabEntry(
+  tabId: number,
+  senderTab: chrome.tabs.Tab | undefined,
+  sessionId: string,
+): TabInfo {
   const tabInfo: TabInfo = {
     id: tabId,
     url: senderTab?.url || '',
@@ -176,7 +185,10 @@ function updateBadge(): void {
   }
 }
 
-async function callMaintenanceEndpoint(path: string, options?: { method?: string; body?: unknown }) {
+async function callMaintenanceEndpoint(
+  path: string,
+  options?: { method?: string; body?: unknown },
+) {
   await ensureInitialized();
   const port = lastDiscoveryPort ?? DISCOVERY_PORT;
   const url = `http://localhost:${port}${path}`;
@@ -515,7 +527,11 @@ function handleConsoleLog(log: LogMessage, sender: chrome.runtime.MessageSender)
 
 async function handleServerMessage(message: any): Promise<void> {
   // Handle browser commands from server
-  if (message.type === 'execute_js' || message.type === 'get_page_info' || message.type === 'query_dom') {
+  if (
+    message.type === 'execute_js' ||
+    message.type === 'get_page_info' ||
+    message.type === 'query_dom'
+  ) {
     const targetTabId = message.data.tabId;
 
     // If no tabId specified, use active tab

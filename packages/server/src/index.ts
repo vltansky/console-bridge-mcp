@@ -1,7 +1,7 @@
+import { createDiscoveryServer } from './discovery-server.js';
 import { LogStorage } from './log-storage.js';
 import { McpServer } from './mcp-server.js';
 import { ConsoleWebSocketServer } from './websocket-server.js';
-import { createDiscoveryServer } from './discovery-server.js';
 
 // Configuration from environment variables
 const logTtlMinutesRaw = process.env.CONSOLE_MCP_LOG_TTL_MINUTES;

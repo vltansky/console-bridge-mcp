@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const CONSOLE_MCP_IDENTIFIER = 'console-logs-mcp';
+export const CONSOLE_MCP_IDENTIFIER = 'console-bridge';
 
 // Log levels
 export type LogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug';
@@ -42,13 +42,26 @@ export type ServerMessage =
   | { type: 'ping'; data: { timestamp: number } }
   | { type: 'execute_js'; data: { requestId: string; code: string; tabId?: number } }
   | { type: 'get_page_info'; data: { requestId: string; tabId?: number; includeHtml?: boolean } }
-  | { type: 'query_dom'; data: { requestId: string; selector: string; tabId?: number; properties?: string[] } };
+  | {
+      type: 'query_dom';
+      data: { requestId: string; selector: string; tabId?: number; properties?: string[] };
+    };
 
 // Browser command responses
 export type BrowserCommandResponse =
   | { type: 'execute_js_response'; data: { requestId: string; result?: unknown; error?: string } }
-  | { type: 'page_info_response'; data: { requestId: string; title: string; url: string; html?: string; error?: string } }
-  | { type: 'query_dom_response'; data: { requestId: string; elements: Array<{ selector: string; properties: Record<string, unknown> }>; error?: string } };
+  | {
+      type: 'page_info_response';
+      data: { requestId: string; title: string; url: string; html?: string; error?: string };
+    }
+  | {
+      type: 'query_dom_response';
+      data: {
+        requestId: string;
+        elements: Array<{ selector: string; properties: Record<string, unknown> }>;
+        error?: string;
+      };
+    };
 
 // Filter options for querying logs
 export interface FilterOptions {

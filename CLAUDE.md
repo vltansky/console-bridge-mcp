@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-console-logs-mcp is an MCP (Model Context Protocol) server that captures browser console logs in real-time via a browser extension and provides AI assistants with tools to query, search, and analyze these logs. The system consists of three packages in a monorepo:
+console-bridge is an MCP (Model Context Protocol) server that captures browser console logs in real-time via a browser extension and provides AI assistants with tools to query, search, and analyze these logs. The system consists of three packages in a monorepo:
 
-- **`console-logs-mcp`**: MCP server with WebSocket server for receiving logs from browser extension
-- **`console-logs-mcp-extension`**: Chrome/Edge browser extension that captures console logs
-- **`console-logs-mcp-shared`**: Shared TypeScript types and Zod schemas
+- **`console-bridge`**: MCP server with WebSocket server for receiving logs from browser extension
+- **`console-bridge-extension`**: Chrome/Edge browser extension that captures console logs
+- **`console-bridge-shared`**: Shared TypeScript types and Zod schemas
 
 ## Architecture
 
@@ -60,7 +60,7 @@ npm run dev:server
 npm run dev:extension
 
 # Start production server
-npm run start -w console-logs-mcp
+npm run start -w console-bridge
 ```
 
 ### Testing & Linting
@@ -110,7 +110,7 @@ Server configuration via environment variables:
 - `noExplicitAny` disabled (explicit any allowed)
 
 ### Type Safety
-- Shared types in `console-logs-mcp-shared` imported by both server and extension
+- Shared types in `console-bridge-shared` imported by both server and extension
 - Zod schemas for WebSocket protocol validation
 - All log messages conform to `LogMessage` interface
 - Extension/Server messages use discriminated unions

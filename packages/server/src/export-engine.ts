@@ -1,4 +1,4 @@
-import type { LogMessage } from 'console-logs-mcp-shared';
+import type { LogMessage } from 'console-bridge-shared';
 
 export type ExportFormat = 'json' | 'csv' | 'txt';
 

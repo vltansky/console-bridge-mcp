@@ -1,10 +1,10 @@
 {
-  "name": "console-logs-mcp",
+  "name": "console-bridge",
   "version": "0.1.0",
   "type": "module",
   "description": "MCP server for browser console logs",
   "bin": {
-    "console-logs-mcp": "./dist/index.js"
+    "console-bridge": "./dist/index.js"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -19,7 +19,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "console-logs-mcp-shared": "*",
+    "console-bridge-shared": "*",
     "@types/node": "^22.9.0",
     "@types/ws": "^8.5.13",
     "tsup": "^8.3.5",
@@ -27,7 +27,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/vltansky/console-logs-mcp.git",
+    "url": "https://github.com/AiCodeCraft/console-bridge.git",
     "directory": "packages/server"
   },
   "keywords": [
@@ -41,7 +41,5 @@
   ],
   "author": "Vlad Tansky",
   "license": "MIT",
-  "files": [
-    "dist"
-  ]
+  "files": ["dist"]
 }

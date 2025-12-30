@@ -1,8 +1,8 @@
 {
-  "name": "console-logs-mcp-shared",
+  "name": "console-bridge-shared",
   "version": "0.1.0",
   "type": "module",
-  "description": "Shared types for console-logs-mcp",
+  "description": "Shared types for console-bridge",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {

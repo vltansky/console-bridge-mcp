@@ -1,5 +1,5 @@
 {
-  "name": "console-logs-mcp-monorepo",
+  "name": "console-bridge-monorepo",
   "version": "0.1.1",
   "private": true,
   "type": "module",
@@ -10,8 +10,8 @@
     "test": "vitest",
     "lint": "biome check .",
     "format": "biome format --write .",
-    "dev:server": "npm run dev -w console-logs-mcp",
-    "dev:extension": "npm run dev -w console-logs-mcp-extension"
+    "dev:server": "npm run dev -w console-bridge",
+    "dev:extension": "npm run dev -w console-bridge-extension"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
@@ -22,7 +22,7 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "keywords": ["mcp", "console", "logging", "browser", "debugging", "chrome-extension"],
+  "keywords": ["mcp", "console", "logging", "browser", "debugging", "chrome-extension", "console-bridge"],
   "author": "",
   "license": "MIT"
 }

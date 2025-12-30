@@ -1,4 +1,4 @@
-import type { LogMessage, ServerMessage, BrowserCommandResponse } from 'console-logs-mcp-shared';
+import type { BrowserCommandResponse, LogMessage, ServerMessage } from 'console-bridge-shared';
 import { interceptConsole } from './lib/console-interceptor';
 
 interface ExecuteResultPayload {
@@ -12,12 +12,25 @@ interface ExecuteResultPayload {
 
 const EXECUTE_SOURCE = 'console-mcp-execute';
 const EXECUTE_TIMEOUT_MS = 30_000;
-const executeCallbacks = new Map<string, { resolve: (payload: ExecuteResultPayload) => void; timer: number }>();
+const executeCallbacks = new Map<
+  string,
+  { resolve: (payload: ExecuteResultPayload) => void; timer: number }
+>();
 
 window.addEventListener('message', (event) => {
   if (event.source !== window) return;
-  const data = event.data as { source?: string; kind?: string; requestId?: string; payload?: ExecuteResultPayload };
-  if (!data || data.source !== EXECUTE_SOURCE || data.kind !== 'execute_js_result' || !data.requestId) {
+  const data = event.data as {
+    source?: string;
+    kind?: string;
+    requestId?: string;
+    payload?: ExecuteResultPayload;
+  };
+  if (
+    !data ||
+    data.source !== EXECUTE_SOURCE ||
+    data.kind !== 'execute_js_result' ||
+    !data.requestId
+  ) {
     return;
   }
 

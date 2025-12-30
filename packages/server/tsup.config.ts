@@ -10,5 +10,5 @@ export default defineConfig({
   banner: {
     js: '#!/usr/bin/env node',
   },
-  noExternal: ['console-logs-mcp-shared'],
+  noExternal: ['console-bridge-shared'],
 });

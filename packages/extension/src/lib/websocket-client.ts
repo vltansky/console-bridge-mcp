@@ -1,4 +1,4 @@
-import type { ExtensionMessage, ServerMessage } from 'console-logs-mcp-shared';
+import type { ExtensionMessage, ServerMessage } from 'console-bridge-shared';
 
 export interface WebSocketClientConfig {
   url: string;
@@ -153,7 +153,6 @@ export class WebSocketClient {
     // Send all messages immediately to avoid batching issues in service workers
     this.sendImmediate(message);
   }
-
 
   private startHeartbeat(): void {
     this.heartbeatInterval = setInterval(() => {

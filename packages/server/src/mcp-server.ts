@@ -1,20 +1,20 @@
-import type { FilterOptions, KeywordSearchParams, SearchParams } from 'console-logs-mcp-shared';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
   CallToolRequestSchema,
-  ListToolsRequestSchema,
-  ListPromptsRequestSchema,
   GetPromptRequestSchema,
+  ListPromptsRequestSchema,
   ListResourcesRequestSchema,
+  ListToolsRequestSchema,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import type { FilterOptions, KeywordSearchParams, SearchParams } from 'console-bridge-shared';
 import { ExportEngine } from './export-engine.js';
 import type { LogStorage } from './log-storage.js';
 import { Sanitizer } from './sanitizer.js';
 import { SearchEngine } from './search-engine.js';
 import { SessionManager } from './session-manager.js';
-import { TabSuggester, type SuggestionContext } from './tab-suggester.js';
+import { type SuggestionContext, TabSuggester } from './tab-suggester.js';
 import type { ConsoleWebSocketServer } from './websocket-server.js';
 
 export class McpServer {
@@ -147,7 +147,8 @@ export class McpServer {
               sanitize: {
                 type: 'boolean',
                 default: false,
-                description: 'Deprecated: Sanitization is controlled by the extension. This parameter has no effect.',
+                description:
+                  'Deprecated: Sanitization is controlled by the extension. This parameter has no effect.',
               },
               includeArgs: {
                 type: 'boolean',
@@ -395,9 +396,8 @@ export class McpServer {
 
     // List available resources
     this.server.setRequestHandler(ListResourcesRequestSchema, async () => ({
-      resources: [
-        ],
-      }));
+      resources: [],
+    }));
 
     // List available prompts
     this.server.setRequestHandler(ListPromptsRequestSchema, async () => ({
@@ -840,7 +840,10 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
     };
   }
 
-  private resolveSessionIdForScope(sessionScope: 'all' | 'current', tabId?: number): string | undefined {
+  private resolveSessionIdForScope(
+    sessionScope: 'all' | 'current',
+    tabId?: number,
+  ): string | undefined {
     if (sessionScope !== 'current') {
       return undefined;
     }
@@ -935,7 +938,8 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
         if (!errorsByMessage.has(key)) {
           errorsByMessage.set(key, { count: 0, samples: [] });
         }
-        const entry = errorsByMessage.get(key)!;
+        const entry = errorsByMessage.get(key);
+        if (!entry) continue;
         entry.count += 1;
         if (options.includeExamples && entry.samples.length < 3) {
           entry.samples.push({ id: log.id, tabId: log.tabId, timestamp: log.timestamp });
@@ -976,7 +980,7 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
 
   private async handleGetLog(args: { id: string; sanitize?: boolean }) {
     const logs = this.storage.getAll();
-    let log = logs.find((l) => l.id === args.id);
+    const log = logs.find((l) => l.id === args.id);
 
     if (!log) {
       throw new Error(`Log not found: ${args.id}`);
@@ -1402,7 +1406,9 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
         ],
       };
     } catch (error) {
-      throw new Error(`Failed to execute JavaScript: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to execute JavaScript: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -1428,7 +1434,9 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
         ],
       };
     } catch (error) {
-      throw new Error(`Failed to get page info: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to get page info: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -1454,7 +1462,9 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
         ],
       };
     } catch (error) {
-      throw new Error(`Failed to query DOM: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to query DOM: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 

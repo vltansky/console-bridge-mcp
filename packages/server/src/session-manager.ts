@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { LogMessage, Session } from 'console-logs-mcp-shared';
+import type { LogMessage, Session } from 'console-bridge-shared';
 
 export class SessionManager {
   private sessions = new Map<string, Session>();

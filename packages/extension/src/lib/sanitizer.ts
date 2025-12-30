@@ -1,4 +1,4 @@
-import type { LogMessage } from 'console-logs-mcp-shared';
+import type { LogMessage } from 'console-bridge-shared';
 
 interface SanitizationPattern {
   pattern: RegExp;

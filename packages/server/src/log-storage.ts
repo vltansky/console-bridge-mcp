@@ -1,4 +1,4 @@
-import type { FilterOptions, LogMessage } from 'console-logs-mcp-shared';
+import type { FilterOptions, LogMessage } from 'console-bridge-shared';
 import { FilterEngine } from './filter-engine.js';
 
 export interface LogStorageConfig {

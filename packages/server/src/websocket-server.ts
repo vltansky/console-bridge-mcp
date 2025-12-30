@@ -1,5 +1,10 @@
-import type { ExtensionMessage, ServerMessage, TabInfo, BrowserCommandResponse } from 'console-logs-mcp-shared';
-import { ExtensionMessageSchema, BrowserCommandResponseSchema } from 'console-logs-mcp-shared';
+import type {
+  BrowserCommandResponse,
+  ExtensionMessage,
+  ServerMessage,
+  TabInfo,
+} from 'console-bridge-shared';
+import { BrowserCommandResponseSchema, ExtensionMessageSchema } from 'console-bridge-shared';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { LogStorage } from './log-storage.js';
 
@@ -94,7 +99,9 @@ export class ConsoleWebSocketServer {
         // Log validation errors to help debug
         if (error instanceof Error) {
           process.stderr.write(`[WebSocket Server] Message validation error: ${error.message}\n`);
-          process.stderr.write(`[WebSocket Server] Raw message: ${data.toString().substring(0, 200)}\n`);
+          process.stderr.write(
+            `[WebSocket Server] Raw message: ${data.toString().substring(0, 200)}\n`,
+          );
         }
       }
     });
@@ -105,7 +112,9 @@ export class ConsoleWebSocketServer {
     });
 
     ws.on('close', () => {
-      process.stderr.write(`[WebSocket Server] Client disconnected (remaining: ${this.clients.size - 1})\n`);
+      process.stderr.write(
+        `[WebSocket Server] Client disconnected (remaining: ${this.clients.size - 1})\n`,
+      );
       this.clients.delete(ws);
     });
 
@@ -118,7 +127,9 @@ export class ConsoleWebSocketServer {
     switch (message.type) {
       case 'log':
         this.storage.add(message.data);
-        process.stderr.write(`[WebSocket Server] Received log: ${message.data.level} from tab ${message.data.tabId}\n`);
+        process.stderr.write(
+          `[WebSocket Server] Received log: ${message.data.level} from tab ${message.data.tabId}\n`,
+        );
         break;
 
       case 'tab_opened':
@@ -145,7 +156,9 @@ export class ConsoleWebSocketServer {
     const pending = this.pendingCommands.get(requestId);
 
     if (!pending) {
-      process.stderr.write(`[WebSocket Server] Received response for unknown request: ${requestId}\n`);
+      process.stderr.write(
+        `[WebSocket Server] Received response for unknown request: ${requestId}\n`,
+      );
       return;
     }
 
@@ -249,7 +262,10 @@ export class ConsoleWebSocketServer {
   /**
    * Get page information (title, URL, optionally HTML)
    */
-  async getPageInfo(tabId?: number, includeHtml?: boolean): Promise<{ title: string; url: string; html?: string }> {
+  async getPageInfo(
+    tabId?: number,
+    includeHtml?: boolean,
+  ): Promise<{ title: string; url: string; html?: string }> {
     if (this.clients.size === 0) {
       throw new Error('No browser clients connected');
     }
@@ -266,7 +282,11 @@ export class ConsoleWebSocketServer {
   /**
    * Query DOM elements using CSS selector
    */
-  async queryDOM(selector: string, tabId?: number, properties?: string[]): Promise<Array<{ selector: string; properties: Record<string, unknown> }>> {
+  async queryDOM(
+    selector: string,
+    tabId?: number,
+    properties?: string[],
+  ): Promise<Array<{ selector: string; properties: Record<string, unknown> }>> {
     if (this.clients.size === 0) {
       throw new Error('No browser clients connected');
     }

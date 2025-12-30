@@ -1,13 +1,13 @@
 <div align="center">
 
-# console-logs-mcp
+# console-bridge
 
 **Real-time Browser Console Logs for AI Assistants**
 
 A Model Context Protocol (MCP) server that captures browser console logs in real-time and provides AI assistants with powerful tools to query, search, and analyze debugging information.
 
-[![NPM Version](https://img.shields.io/npm/v/console-logs-mcp)](https://www.npmjs.com/package/console-logs-mcp)
-[![License](https://img.shields.io/npm/l/console-logs-mcp)](./LICENSE)
+[![NPM Version](https://img.shields.io/npm/v/console-bridge)](https://www.npmjs.com/package/console-bridge)
+[![License](https://img.shields.io/npm/l/console-bridge)](./LICENSE)
 [![MCP](https://img.shields.io/badge/Model_Context_Protocol-MCP_Server-blue)](https://modelcontextprotocol.io)
 
 </div>
@@ -17,7 +17,7 @@ A Model Context Protocol (MCP) server that captures browser console logs in real
 ## Table of Contents
 
 - [See It In Action](#see-it-in-action)
-- [Why console-logs-mcp?](#why-console-logs-mcp)
+- [Why console-bridge?](#why-console-bridge)
 - [Features](#features)
 - [Installation](#installation)
   - [Prerequisites](#prerequisites)
@@ -38,7 +38,7 @@ A Model Context Protocol (MCP) server that captures browser console logs in real
 
 ### Debugging React Application Errors in Real-Time
 
-Watch how console-logs-mcp transforms the debugging workflow by giving AI assistants direct access to browser console logs.
+Watch how console-bridge transforms the debugging workflow by giving AI assistants direct access to browser console logs.
 
 **Scenario**: You're building a React app and encountering authentication errors. Instead of manually copying logs, just ask your AI assistant:
 
@@ -47,7 +47,7 @@ Watch how console-logs-mcp transforms the debugging workflow by giving AI assist
 > Show me all error logs from the last 5 minutes on localhost:3000
 
 **What happens:**
-- console-logs-mcp instantly fetches matching logs with full stack traces
+- console-bridge instantly fetches matching logs with full stack traces
 - AI analyzes the error patterns and identifies the root cause
 - You get actionable fixes without switching between browser and editor
 
@@ -55,14 +55,14 @@ Watch how console-logs-mcp transforms the debugging workflow by giving AI assist
 
 ### Smart Tab Selection for Multi-Project Development
 
-When working on multiple projects simultaneously, console-logs-mcp intelligently suggests which browser tab to focus on.
+When working on multiple projects simultaneously, console-bridge intelligently suggests which browser tab to focus on.
 
 **Prompt:**
 
 > Which tab should I focus on for debugging my checkout flow?
 
 **What happens:**
-- console-logs-mcp analyzes your hints (URL patterns, domains, dev-server ports)
+- console-bridge analyzes your hints (URL patterns, domains, dev-server ports)
 - Ranks all open tabs by relevance
 - Suggests the most likely tab with reasoning
 - Shows recent error counts per tab
@@ -78,7 +78,7 @@ When working on multiple projects simultaneously, console-logs-mcp intelligently
 > Search for "authentication failed" errors in the last hour and show me the pattern
 
 **What happens:**
-- console-logs-mcp searches across all captured logs using regex/keyword matching
+- console-bridge searches across all captured logs using regex/keyword matching
 - Groups errors by frequency, URL, and time distribution
 - AI identifies patterns (e.g., "All auth errors happen after token refresh")
 - Suggests fixes based on the error context
@@ -95,9 +95,9 @@ These guardrails keep the tool focused on fresh context without forcing you to m
 
 ---
 
-## Why console-logs-mcp?
+## Why console-bridge?
 
-### ❌ Without console-logs-mcp
+### ❌ Without console-bridge
 
 When debugging with AI assistants, you have to:
 
@@ -106,9 +106,9 @@ When debugging with AI assistants, you have to:
 - Lose context when console clears or page reloads
 - Struggle to describe complex error patterns
 
-### ✅ With console-logs-mcp
+### ✅ With console-bridge
 
-console-logs-mcp automatically captures all browser console logs and lets AI assistants:
+console-bridge automatically captures all browser console logs and lets AI assistants:
 
 - **Query logs in real-time** - Ask "Show me all authentication errors from the last 5 minutes"
 - **Search with natural language** - "Find network timeout errors on the checkout page"
@@ -121,7 +121,7 @@ console-logs-mcp automatically captures all browser console logs and lets AI ass
 Show me all error logs from the last 10 minutes on localhost:3000
 ```
 
-console-logs-mcp fetches matching logs instantly, with full stack traces, timestamps, and tab context.
+console-bridge fetches matching logs instantly, with full stack traces, timestamps, and tab context.
 
 ---
 
@@ -153,20 +153,20 @@ console-logs-mcp fetches matching logs instantly, with full stack traces, timest
 
 ### Quick Start
 
-console-logs-mcp requires two components: the MCP server and the browser extension.
+console-bridge requires two components: the MCP server and the browser extension.
 
 #### Step 1: Install the MCP Server
 
 ```bash
-npx console-logs-mcp@latest
+npx console-bridge@latest
 ```
 
 #### Step 2: Install Browser Extension
 
 ```bash
 # Clone and build
-git clone https://github.com/vltansky/console-logs-mcp.git
-cd console-logs-mcp
+git clone https://github.com/AiCodeCraft/console-bridge.git
+cd console-bridge
 npm install
 npm run build
 
@@ -185,19 +185,19 @@ See [Client-Specific Setup](#client-specific-setup) below for your preferred too
 
 #### Step 4: Verify Installation
 
-After installation, verify console-logs-mcp is working:
+After installation, verify console-bridge is working:
 
 1. **Restart your MCP client** completely
 2. **Check connection status**:
    - **Cursor**: Look for green dot in Settings → Tools & Integrations → MCP Tools
-   - **Claude Desktop**: Check for "console-logs-mcp" in available tools
+   - **Claude Desktop**: Check for "console-bridge" in available tools
    - **VS Code**: Verify in GitHub Copilot settings
 3. **Test with a simple query**:
    ```
    Show me all console logs from the last 5 minutes
    ```
 
-If you see console-logs-mcp tools being used, you're all set! 🎉
+If you see console-bridge tools being used, you're all set! 🎉
 
 ---
 
@@ -208,11 +208,11 @@ If you see console-logs-mcp tools being used, you're all set! 🎉
 
 #### One-Click Install
 
-[<img src="https://cursor.com/deeplink/mcp-install-dark.svg" alt="Install in Cursor">](https://cursor.com/en/install-mcp?name=console-logs-mcp&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsImNvbnNvbGUtbG9ncy1tY3BAbGF0ZXN0Il19)
+[<img src="https://cursor.com/deeplink/mcp-install-dark.svg" alt="Install in Cursor">](https://cursor.com/en/install-mcp?name=console-bridge&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsImNvbnNvbGUtYnJpZGdlQGxhdGVzdCJdfQ==)
 
 #### Manual Install
 
-Go to `Cursor Settings` → `MCP` → `Add new MCP Server`. Name to your liking, use `command` type with the command `npx -y console-logs-mcp@latest`. You can also verify config or add command arguments via clicking `Edit`.
+Go to `Cursor Settings` → `MCP` → `Add new MCP Server`. Name to your liking, use `command` type with the command `npx -y console-bridge@latest`. You can also verify config or add command arguments via clicking `Edit`.
 
 #### Project-Specific Configuration
 
@@ -221,9 +221,9 @@ Create `.cursor/mcp.json` in your project root:
 ```json
 {
   "mcpServers": {
-    "console-logs-mcp": {
+    "console-bridge": {
       "command": "npx",
-      "args": ["-y", "console-logs-mcp@latest"]
+      "args": ["-y", "console-bridge@latest"]
     }
   }
 }
@@ -237,7 +237,7 @@ Create `.cursor/mcp.json` in your project root:
 Use the Claude Code CLI:
 
 ```bash
-claude mcp add console-logs-mcp npx -y console-logs-mcp@latest
+claude mcp add console-bridge npx -y console-bridge@latest
 ```
 
 Or manually edit `~/.claude/config.json`:
@@ -245,9 +245,9 @@ Or manually edit `~/.claude/config.json`:
 ```json
 {
   "mcpServers": {
-    "console-logs-mcp": {
+    "console-bridge": {
       "command": "npx",
-      "args": ["-y", "console-logs-mcp@latest"]
+      "args": ["-y", "console-bridge@latest"]
     }
   }
 }
@@ -260,7 +260,7 @@ Or manually edit `~/.claude/config.json`:
 
 #### Click the button to install:
 
-[<img src="https://img.shields.io/badge/VS_Code-VS_Code?style=flat-square&label=Install%20Server&color=0098FF" alt="Install in VS Code">](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%7B%22name%22%3A%22console-logs-mcp%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22console-logs-mcp%40latest%22%5D%7D) [<img alt="Install in VS Code Insiders" src="https://img.shields.io/badge/VS_Code_Insiders-VS_Code_Insiders?style=flat-square&label=Install%20Server&color=24bfa5">](https://insiders.vscode.dev/redirect?url=vscode-insiders%3Amcp%2Finstall%3F%7B%22name%22%3A%22console-logs-mcp%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22console-logs-mcp%40latest%22%5D%7D)
+[<img src="https://img.shields.io/badge/VS_Code-VS_Code?style=flat-square&label=Install%20Server&color=0098FF" alt="Install in VS Code">](https://insiders.vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%7B%22name%22%3A%22console-bridge%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22console-bridge%40latest%22%5D%7D) [<img alt="Install in VS Code Insiders" src="https://img.shields.io/badge/VS_Code_Insiders-VS_Code_Insiders?style=flat-square&label=Install%20Server&color=24bfa5">](https://insiders.vscode.dev/redirect?url=vscode-insiders%3Amcp%2Finstall%3F%7B%22name%22%3A%22console-bridge%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22console-bridge%40latest%22%5D%7D)
 
 #### Or install manually:
 
@@ -268,7 +268,7 @@ Follow the MCP install [guide](https://code.visualstudio.com/docs/copilot/chat/m
 
 ```bash
 # For VS Code
-code --add-mcp '{"name":"console-logs-mcp","command":"npx","args":["-y","console-logs-mcp@latest"]}'
+code --add-mcp '{"name":"console-bridge","command":"npx","args":["-y","console-bridge@latest"]}'
 ```
 
 Or add to `settings.json`:
@@ -276,9 +276,9 @@ Or add to `settings.json`:
 ```json
 {
   "mcp.servers": {
-    "console-logs-mcp": {
+    "console-bridge": {
       "command": "npx",
-      "args": ["-y", "console-logs-mcp@latest"]
+      "args": ["-y", "console-bridge@latest"]
     }
   }
 }
@@ -294,9 +294,9 @@ Add to your Windsurf MCP configuration:
 ```json
 {
   "mcpServers": {
-    "console-logs-mcp": {
+    "console-bridge": {
       "command": "npx",
-      "args": ["-y", "console-logs-mcp@latest"]
+      "args": ["-y", "console-bridge@latest"]
     }
   }
 }
@@ -312,9 +312,9 @@ Follow the [MCP install guide](https://modelcontextprotocol.io/quickstart/user),
 ```json
 {
   "mcpServers": {
-    "console-logs-mcp": {
+    "console-bridge": {
       "command": "npx",
-      "args": ["-y", "console-logs-mcp@latest"]
+      "args": ["-y", "console-bridge@latest"]
     }
   }
 }
@@ -378,7 +378,7 @@ Query DOM for '.submit-btn' and get disabled, className properties
 
 ## MCP Tools Reference
 
-console-logs-mcp now exposes **seven focused tools**. Each one keeps the surface area small while still covering the entire debugging workflow. Pass the desired `action` (or `mode`) plus only the fields you need and the server routes the request to the right handler.
+console-bridge now exposes **seven focused tools**. Each one keeps the surface area small while still covering the entire debugging workflow. Pass the desired `action` (or `mode`) plus only the fields you need and the server routes the request to the right handler.
 
 ---
 
@@ -512,7 +512,7 @@ CONSOLE_MCP_LOG_TTL_MINUTES=60     # Minutes to retain logs before automatic cle
 
 ```bash
 # Increase log storage and change port
-CONSOLE_MCP_PORT=8080 CONSOLE_MCP_MAX_LOGS=50000 npx console-logs-mcp@latest
+CONSOLE_MCP_PORT=8080 CONSOLE_MCP_MAX_LOGS=50000 npx console-bridge@latest
 ```
 
 > Logs older than `CONSOLE_MCP_LOG_TTL_MINUTES` are automatically purged. Set the value to `0` or a negative number if you prefer unlimited retention.
@@ -521,7 +521,7 @@ CONSOLE_MCP_PORT=8080 CONSOLE_MCP_MAX_LOGS=50000 npx console-logs-mcp@latest
 
 ## Architecture
 
-console-logs-mcp uses a three-component architecture for efficient real-time log capture and analysis:
+console-bridge uses a three-component architecture for efficient real-time log capture and analysis:
 
 ```
 ┌─────────────────────┐          ┌──────────────────────┐          ┌─────────────────┐
@@ -539,9 +539,9 @@ console-logs-mcp uses a three-component architecture for efficient real-time log
 
 | Package | Description | Key Components |
 |---------|-------------|----------------|
-| **`console-logs-mcp`** | MCP server exposing 7 focused tools + WebSocket server | MCP tools, WebSocket server, log storage, filter/search engines, tab suggester, session manager |
-| **`console-logs-mcp-extension`** | Chrome/Edge extension capturing console logs | Content script, console interceptor, WebSocket client, popup UI |
-| **`console-logs-mcp-shared`** | Shared TypeScript types and Zod schemas | LogMessage, FilterOptions, SearchOptions, TabInfo types |
+| **`console-bridge`** | MCP server exposing 7 focused tools + WebSocket server | MCP tools, WebSocket server, log storage, filter/search engines, tab suggester, session manager |
+| **`console-bridge-extension`** | Chrome/Edge extension capturing console logs | Content script, console interceptor, WebSocket client, popup UI |
+| **`console-bridge-shared`** | Shared TypeScript types and Zod schemas | LogMessage, FilterOptions, SearchOptions, TabInfo types |
 
 ### Data Flow
 
@@ -592,7 +592,7 @@ npm run format  # Format with Biome
 ### Project Structure
 
 ```
-console-logs-mcp/
+console-bridge/
 ├── packages/
 │   ├── server/          # MCP + WebSocket server
 │   │   ├── src/
@@ -653,16 +653,16 @@ MIT License - see [LICENSE](./LICENSE) for details.
 
 ### Get Support
 
-- **GitHub Issues**: [Report bugs, request features](https://github.com/vltansky/console-logs-mcp/issues)
-- **GitHub Discussions**: [Ask questions, share ideas](https://github.com/vltansky/console-logs-mcp/discussions)
+- **GitHub Issues**: [Report bugs, request features](https://github.com/vltansky/console-bridge/issues)
+- **GitHub Discussions**: [Ask questions, share ideas](https://github.com/vltansky/console-bridge/discussions)
 - **Documentation**: See [CLAUDE.md](./CLAUDE.md) for architecture details
 
 ### Show Your Support
 
-If console-logs-mcp improves your debugging workflow:
+If console-bridge improves your debugging workflow:
 
-- **Star the repository** on [GitHub](https://github.com/vltansky/console-logs-mcp)
-- **Share on social media** with #consolelogsmcp
+- **Star the repository** on [GitHub](https://github.com/vltansky/console-bridge)
+- **Share on social media** with #consolebridge
 - **Write about your experience** on your blog
 - **Create tutorials** and share with the community
 - **Contribute** improvements and bug fixes
@@ -673,7 +673,7 @@ If console-logs-mcp improves your debugging workflow:
 
 **Built with care for developers by developers**
 
-[GitHub](https://github.com/vltansky/console-logs-mcp) • [NPM](https://www.npmjs.com/package/console-logs-mcp)
+[GitHub](https://github.com/vltansky/console-bridge) • [NPM](https://www.npmjs.com/package/console-bridge)
 
 ---
 

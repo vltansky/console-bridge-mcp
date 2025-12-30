@@ -14,26 +14,26 @@ const captureErrorsCheckbox = document.getElementById(
 
 // Classes for states
 const toggleEnabledClasses =
-  'bg-accent-sky text-white shadow-lg shadow-accent-sky/20 hover:bg-accent-sky/90 border-transparent';
+  'bg-accent-primary text-ink-950 hover:bg-accent-primary/90 border-transparent';
 const toggleDisabledClasses =
   'bg-ink-800 text-ink-400 hover:bg-ink-700 hover:text-ink-200 border-transparent';
 
 const statusIndicatorClasses = {
-  connected: 'bg-accent-mint shadow-[0_0_8px_rgba(52,211,153,0.6)]',
-  disconnected: 'bg-accent-rose shadow-[0_0_8px_rgba(251,113,133,0.6)]',
-  reconnecting: 'bg-accent-amber shadow-[0_0_8px_rgba(251,191,36,0.6)]',
+  connected: 'bg-accent-primary',
+  disconnected: 'bg-accent-error',
+  reconnecting: 'bg-accent-warning',
 } as const;
 
 const statusContainerClasses = {
-  connected: 'border-accent-mint/20 bg-accent-mint/5',
-  disconnected: 'border-accent-rose/20 bg-accent-rose/5',
-  reconnecting: 'border-accent-amber/20 bg-accent-amber/5',
+  connected: 'border-accent-primary/20 bg-accent-primary/5',
+  disconnected: 'border-accent-error/20 bg-accent-error/5',
+  reconnecting: 'border-accent-warning/20 bg-accent-warning/5',
 } as const;
 
 const statusTextClasses = {
-  connected: 'text-accent-mint',
-  disconnected: 'text-accent-rose',
-  reconnecting: 'text-accent-amber',
+  connected: 'text-accent-primary',
+  disconnected: 'text-accent-error',
+  reconnecting: 'text-accent-warning',
 } as const;
 
 let cachedTabs: any[] = [];
@@ -111,7 +111,7 @@ function renderTabs(): void {
                <div class="font-medium text-xs text-ink-100 truncate" title="${escapeHtml(tab.title || 'Untitled')}">${escapeHtml(tab.title || 'Untitled')}</div>
                ${
                  tab.isActive
-                   ? '<span class="h-1.5 w-1.5 rounded-full bg-accent-mint shadow-[0_0_6px_rgba(52,211,153,0.6)]" title="Active"></span>'
+                   ? '<span class="h-1.5 w-1.5 rounded-full bg-accent-primary" title="Active"></span>'
                    : ''
                }
             </div>
@@ -134,7 +134,7 @@ async function updateTabs(): Promise<void> {
     cachedTabs = response.tabs || [];
 
     if (activeTabsEl) {
-        activeTabsEl.textContent = cachedTabs.length.toString();
+      activeTabsEl.textContent = cachedTabs.length.toString();
     }
 
     renderTabs();
@@ -188,14 +188,14 @@ if (refreshTabsBtn) {
   refreshTabsBtn.addEventListener('click', async () => {
     refreshTabsBtn.disabled = true;
     const icon = refreshTabsBtn.querySelector('svg');
-    if(icon) icon.classList.add('animate-spin');
+    if (icon) icon.classList.add('animate-spin');
 
     try {
       await updateTabs();
     } finally {
       setTimeout(() => {
         refreshTabsBtn.disabled = false;
-        if(icon) icon.classList.remove('animate-spin');
+        if (icon) icon.classList.remove('animate-spin');
       }, 400);
     }
   });
