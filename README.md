@@ -60,12 +60,12 @@ Query DOM for '.error-message' and get textContent
 
 | Prompt | What Happens |
 |--------|--------------|
-| `Show error logs from the last 5 minutes` | Fetches filtered console logs with stack traces |
-| `Search for "authentication failed"` | Regex/keyword search across all captured logs |
-| `Which tab should I focus on?` | Ranks open tabs by URL patterns, ports, domains |
-| `Execute: localStorage.getItem('token')` | Runs JS in the page, returns result |
-| `Query DOM for '.btn' properties` | Extracts element attributes without DevTools |
+| `Show error logs from the last 5 minutes` | Filters logs by level and time range |
+| `Show logs from localhost:3000` | Filters logs by URL pattern |
+| `Search for "authentication failed"` | Regex/keyword search across all logs |
+| `Tail logs from the current tab` | Streams new logs as they appear |
 | `Show me a snapshot of recent errors` | Summarizes error counts and patterns |
+| `Execute: localStorage.getItem('token')` | Runs JS in the page, returns result |
 
 ---
 
