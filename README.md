@@ -20,7 +20,7 @@ Query console logs, execute JavaScript, and inspect DOM — all through natural 
 
 ### 1. Install Extension
 
-1. Download `dev-browser-extension-*-chrome.zip` from the [latest release](https://github.com/vltansky/console-bridge-mcp/releases/latest)
+1. Download `console-bridge-ext-v*.zip.zip` from the [latest release](https://github.com/vltansky/console-bridge-mcp/releases/latest)
 2. Unzip to a permanent location (e.g., `~/.console-bridge-extension`)
 3. Open Chrome → `chrome://extensions`
 4. Enable "Developer mode" (toggle in top right)
