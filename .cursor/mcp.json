@@ -1,13 +1,10 @@
 {
   "mcpServers": {
-    "console-mcp": {
+    "console-bridge-dev": {
       "command": "node",
       "args": [
         "./packages/server/dist/index.js"
-      ],
-      "env": {
-        "NODE_ENV": "production"
-      }
+      ]
     }
   }
 }

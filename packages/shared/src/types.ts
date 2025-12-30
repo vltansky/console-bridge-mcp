@@ -114,19 +114,6 @@ export interface SearchResult {
   total: number;
 }
 
-// Session information
-export interface Session {
-  id: string;
-  name?: string; // Optional human-readable name
-  description?: string; // Optional description
-  startTime: number;
-  endTime: number;
-  logCount: number;
-  tabs: number[];
-  logs: LogMessage[];
-  created: number; // Timestamp when session was created
-}
-
 // Zod schemas for runtime validation
 export const LogLevelSchema = z.enum(['log', 'info', 'warn', 'error', 'debug']);
 

@@ -97,6 +97,37 @@ These guardrails keep the tool focused on fresh context without forcing you to m
 
 ---
 
+### Project Skills via `.console-bridge/`
+
+Need to teach the AI agent how *this* repo behaves? Create a `.console-bridge/` folder (optionally with a nested `skills/` directory) and drop markdown playbooks inside:
+
+```markdown
+---
+title: Checkout Flow Smoke Test
+description: How to target checkout tabs + common log filters.
+tags:
+  - checkout
+  - tabs
+flow:
+  - console_tabs (action: "suggest", urlPatterns: ["localhost:4000/checkout"])
+  - console_logs (levels: ["error"], tabId: <tabId>)
+  - console_browser_execute (mode: "execute_js", code: "window.checkout.debug()")
+---
+
+Start by running `console_tabs` with `urlPatterns: ["localhost:4000/checkout"]` and prefer results whose `lastNavigationAt` is within the last 5 minutes.
+```
+
+On startup, console-bridge scans this folder and exposes each file through two MCP tools:
+
+- `console_skills_list(tags?: string[])` — returns metadata (slug, title, tags, recommended tool flow, source file). Use tags to narrow down (e.g., `"checkout"`, `"crm"`).
+- `console_skills_load(slug: string)` — fetches the full markdown body for a specific skill (grab the slug from the list response).
+
+When the MCP server runs outside of the project (e.g., you’re in `console-bridge`, but the repo you’re debugging lives elsewhere), pass `projectPath: "/absolute/path/to/repo"` to both tools so the server scans the right `.console-bridge/` folder. Otherwise it uses the server’s default directory (configurable via `CONSOLE_MCP_SKILLS_DIR`).
+
+This keeps project-specific knowledge versioned with your codebase instead of hard-coding paths inside the MCP server.
+
+---
+
 ## Why console-bridge?
 
 ### ❌ Without console-bridge
@@ -132,7 +163,7 @@ console-bridge fetches matching logs instantly, with full stack traces, timestam
 | Feature | Description | Benefit |
 |---------|-------------|---------|
 | 🔍 **Real-time Log Capture** | Browser extension captures console logs from all tabs | Never miss a log, even on page reload |
-| 🤖 **AI Integration** | Query logs using natural language through 7 focused MCP tools | Ask questions instead of writing filters |
+| 🤖 **AI Integration** | Query logs using natural language through 8 focused MCP tools | Ask questions instead of writing filters |
 | 🎯 **Smart Tab Selection** | Suggest relevant tabs by combining URL patterns, domains, and ports | Find the right tab instantly in multi-project setups |
 | 🔎 **Advanced Search** | Regex and keyword search with filtering by level, URL, time | Powerful pattern matching and boolean logic |
 | 📊 **Session Management** | Save and restore named log sessions for debugging | Compare before/after, reproduce issues with memorable names |
@@ -142,6 +173,7 @@ console-bridge fetches matching logs instantly, with full stack traces, timestam
 | 🕒 **Auto Retention** | Configurable TTL trims old logs (60 minutes by default) | Keep memory usage predictable |
 | ⚡ **Lightweight** | Batched WebSocket protocol, minimal performance impact | <1% CPU overhead, 95% network reduction |
 | 🎮 **Browser Automation** | Execute JavaScript, query DOM, get page info directly from AI | Reproduce issues, test fixes, inspect state without DevTools |
+| 🧠 **Project Playbooks** | `.console-bridge/*.md` files become discoverable via `console_skills_list/load` | Give every project bespoke debugging flows and context |
 
 ---
 
@@ -380,7 +412,7 @@ Query DOM for '.submit-btn' and get disabled, className properties
 
 ## MCP Tools Reference
 
-console-bridge now exposes **seven focused tools**. Each one keeps the surface area small while still covering the entire debugging workflow. Pass the desired `action` (or `mode`) plus only the fields you need and the server routes the request to the right handler.
+console-bridge now exposes **eight focused tools**. Each one keeps the surface area small while still covering the entire debugging workflow. Pass the desired `action` (or `mode`) plus only the fields you need and the server routes the request to the right handler.
 
 ---
 
@@ -490,6 +522,19 @@ Condensed view of recent log activity.
 
 ---
 
+### 🧠 `console_skills_list` / `console_skills_load`
+
+Project-specific instructions from `.console-bridge/*.md`.
+
+- **`console_skills_list`** — omit parameters to enumerate every skill (slug, title, tags, recommended flow). Pass `tags` to narrow by topic (case-insensitive AND logic) and/or `projectPath` when the `.console-bridge` folder lives outside the server’s working directory.
+- **`console_skills_load`** — provide a `slug` from the list response (and the same optional `projectPath`) to fetch the full markdown body + metadata.
+
+**Tips**
+- Use the `flow` metadata to chain MCP calls (e.g., `["console_tabs", "console_logs", "console_browser_execute"]`).
+- Store environment-specific hints (ports, urlPatterns, feature flags) in the markdown body to give the agent lightweight “SOPs” for the repo.
+
+---
+
 ### 🧩 Maintenance via Extension
 
 - Open the browser extension popup to clear logs or download exports directly without using MCP tools.
@@ -506,6 +551,7 @@ CONSOLE_MCP_PORT=9847              # WebSocket server port (default: 9847)
 CONSOLE_MCP_DISCOVERY_PORT=9846    # HTTP discovery & maintenance server port (default: 9846)
 CONSOLE_MCP_MAX_LOGS=10000         # Maximum logs to store in memory (default: 10000)
 CONSOLE_MCP_LOG_TTL_MINUTES=60     # Minutes to retain logs before automatic cleanup (set <= 0 to disable)
+CONSOLE_MCP_SKILLS_DIR=./.console-bridge  # Optional override for the project skills directory
 ```
 
 > **Note**: Data sanitization is handled by the browser extension, not the server. Batch configuration is not used as messages are sent immediately to avoid issues in service workers.

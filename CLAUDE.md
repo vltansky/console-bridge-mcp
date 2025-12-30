@@ -16,15 +16,16 @@ console-bridge is an MCP (Model Context Protocol) server that captures browser c
 
 The server follows a modular architecture with specialized engines:
 
-- **`index.ts`**: Entry point that initializes LogStorage, ConsoleWebSocketServer, and McpServer
-- **`mcp-server.ts`**: Core MCP server implementation exposing seven focused tools for log querying
+- **`index.ts`**: Entry point that initializes LogStorage, ConsoleWebSocketServer, loads project skills, and starts the MCP server
+- **`mcp-server.ts`**: Core MCP server implementation exposing eight focused tools for log querying and project guidance
 - **`websocket-server.ts`**: WebSocket server (port 9847) receiving log batches from extension
 - **`log-storage.ts`**: In-memory log storage with filtering and pagination
 - **`filter-engine.ts`**: Filters logs by level, tab, URL pattern, time range, session
 - **`search-engine.ts`**: Regex and keyword search with context lines
-- **`sanitizer.ts`**: Data sanitization to mask sensitive information
+- **`sanitizer.ts`**: Data sanitization helper (now primarily handled inside the extension)
 - **`export-engine.ts`**: Exports logs to JSON, CSV, or plain text
 - **`session-manager.ts`**: Saves and restores log sessions
+- **`project-skills.ts`**: Scans `.console-bridge/*.md` files, parses front-matter metadata, and feeds the new `console_skills_list`/`console_skills_load` tools
 
 ### Extension Architecture (`packages/extension/src/`)
 
@@ -89,11 +90,10 @@ After running `npm run build` or `npm run dev:extension`:
 Server configuration via environment variables:
 
 - `CONSOLE_MCP_PORT=9847` - WebSocket server port
+- `CONSOLE_MCP_DISCOVERY_PORT=9846` - HTTP discovery & maintenance server port
 - `CONSOLE_MCP_MAX_LOGS=10000` - Maximum logs to store in memory
-- `CONSOLE_MCP_SANITIZE_LOGS=true` - Enable/disable sanitization
 - `CONSOLE_MCP_LOG_TTL_MINUTES=60` - Minutes before in-memory logs expire (set <= 0 to disable TTL)
-- `CONSOLE_MCP_BATCH_SIZE=50` - Batch size for log sending
-- `CONSOLE_MCP_BATCH_INTERVAL_MS=100` - Batch interval in milliseconds
+- `CONSOLE_MCP_SKILLS_DIR=.console-bridge` - Optional override for the skills directory scanned at startup
 
 ## Code Standards
 
@@ -132,13 +132,19 @@ All messages validated with Zod schemas at runtime.
 - `after`/`before`: Time range (ISO timestamp or relative like "5m", "1h")
 - `sessionId`: Filter by session
 
+### Project Skills Folder
+- Creating `.console-bridge/` in a project root allows authors to drop markdown skills with YAML front-matter (`title`, `description`, `tags`, `flow`).
+- `packages/server/src/project-skills.ts` parses these files on startup and exposes them through `console_skills_list` (metadata only) and `console_skills_load` (full markdown body). Both tools accept a `projectPath` argument when the repo lives outside the MCP server’s working directory.
+- Each skill body remains Markdown so agents can read rich guidance; flow metadata should outline recommended MCP tool sequences.
+
 ### MCP Tools
-All seven MCP tools are defined in `mcp-server.ts`:
-- `console_tabs`, `console_logs`, `console_search`, `console_sessions`, `console_browser_info`, `console_browser_execute`, `console_snapshot`
+All eight MCP tools are defined in `mcp-server.ts`:
+- `console_tabs`, `console_logs`, `console_search`, `console_sessions`, `console_browser_info`, `console_browser_execute`, `console_snapshot`, `console_skills_list`, `console_skills_load`
 - Tools accept JSON arguments validated against input schemas
 - Tools return text content (usually JSON stringified)
 - Error handling returns `isError: true` with error message
 - `console_logs` and `console_search` accept `sessionScope` (`"all"` or `"current"`) to focus on the latest navigation/session per tab
+- `console_skills_list` surfaces markdown skills discovered in `.console-bridge/` and supports tag filters + optional `projectPath`; `console_skills_load` returns the markdown for a specific slug (matching `projectPath`)
 - Maintenance actions (clear/export/stats) are available via the browser extension popup, not as MCP tools
 
 ## Testing Strategy

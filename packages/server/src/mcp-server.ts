@@ -13,8 +13,8 @@ import { ExportEngine } from './export-engine.js';
 import type { LogStorage } from './log-storage.js';
 import { Sanitizer } from './sanitizer.js';
 import { SearchEngine } from './search-engine.js';
-import { SessionManager } from './session-manager.js';
 import { type SuggestionContext, TabSuggester } from './tab-suggester.js';
+import { loadProjectSkills, type ProjectSkill } from './project-skills.js';
 import type { ConsoleWebSocketServer } from './websocket-server.js';
 
 export class McpServer {
@@ -24,7 +24,6 @@ export class McpServer {
   private searchEngine: SearchEngine;
   private sanitizer: Sanitizer;
   private exportEngine: ExportEngine;
-  private sessionManager: SessionManager;
   private tabSuggester: TabSuggester;
 
   constructor(storage: LogStorage, wsServer: ConsoleWebSocketServer) {
@@ -33,7 +32,6 @@ export class McpServer {
     this.searchEngine = new SearchEngine();
     this.sanitizer = new Sanitizer();
     this.exportEngine = new ExportEngine();
-    this.sessionManager = new SessionManager();
     this.tabSuggester = new TabSuggester();
 
     this.server = new Server(
@@ -287,84 +285,44 @@ export class McpServer {
           },
         },
         {
-          name: 'console_sessions',
-          description: 'Manage saved log sessions (save, load, list).',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              action: {
-                type: 'string',
-                enum: ['save', 'load', 'list'],
-                default: 'list',
-                description: 'Session action to perform',
-              },
-              filter: {
-                type: 'object',
-                description: 'Filters when saving sessions',
-              },
-              name: {
-                type: 'string',
-                description: 'Optional session name when saving',
-              },
-              description: {
-                type: 'string',
-                description: 'Optional session description when saving',
-              },
-              sessionId: {
-                type: 'string',
-                description: 'Session name/ID when loading',
-              },
-            },
-          },
-        },
-        {
-          name: 'console_browser_info',
-          description: 'Get current page title/URL (and optional HTML) for a tab.',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              tabId: {
-                type: 'number',
-                description: 'Target tab (defaults to active tab when omitted)',
-              },
-              includeHtml: {
-                type: 'boolean',
-                default: false,
-                description: 'Include full HTML dump (use sparingly to save tokens)',
-              },
-            },
-          },
-        },
-        {
           name: 'console_browser_execute',
-          description: 'Run JavaScript in the page context or query DOM nodes.',
+          description: 'Execute JavaScript in the page context. Has full access to page globals (window, document, etc).',
           inputSchema: {
             type: 'object',
             properties: {
-              mode: {
-                type: 'string',
-                enum: ['execute_js', 'query_dom'],
-                default: 'execute_js',
-                description: 'Select raw JS execution or DOM query mode',
-              },
               code: {
                 type: 'string',
-                description: 'JavaScript snippet to execute when mode = execute_js',
-              },
-              selector: {
-                type: 'string',
-                description: 'CSS selector when mode = query_dom',
-              },
-              properties: {
-                type: 'array',
-                items: { type: 'string' },
-                description: 'DOM properties to extract (query mode)',
+                description: 'JavaScript code to execute. Supports async/await.',
               },
               tabId: {
                 type: 'number',
                 description: 'Target tab (defaults to active tab)',
               },
             },
+            required: ['code'],
+          },
+        },
+        {
+          name: 'console_browser_query',
+          description: 'Query DOM elements by CSS selector and extract properties.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              selector: {
+                type: 'string',
+                description: 'CSS selector to query',
+              },
+              properties: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Properties to extract (default: textContent, className, id, tagName)',
+              },
+              tabId: {
+                type: 'number',
+                description: 'Target tab (defaults to active tab)',
+              },
+            },
+            required: ['selector'],
           },
         },
         {
@@ -391,6 +349,47 @@ export class McpServer {
             },
           },
         },
+        {
+          name: 'console_skills_list',
+          description:
+            'List project-specific debugging skills discovered in `.console-bridge/` (without loading markdown bodies).',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectPath: {
+                type: 'string',
+                description:
+                  'Absolute path to the project root (where `.console-bridge/` lives).',
+              },
+              tags: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Filter skills by tag (case-insensitive AND logic)',
+              },
+            },
+            required: ['projectPath'],
+          },
+        },
+        {
+          name: 'console_skills_load',
+          description:
+            'Load a single project skill by slug and return its full markdown body plus metadata.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              slug: {
+                type: 'string',
+                description: 'Required skill identifier (see console_skills_list)',
+              },
+              projectPath: {
+                type: 'string',
+                description:
+                  'Absolute path to the project root (where `.console-bridge/` lives).',
+              },
+            },
+            required: ['slug', 'projectPath'],
+          },
+        },
       ],
     }));
 
@@ -398,6 +397,9 @@ export class McpServer {
     this.server.setRequestHandler(ListResourcesRequestSchema, async () => ({
       resources: [],
     }));
+    this.server.setRequestHandler(ReadResourceRequestSchema, async () => {
+      throw new Error('No resources are exposed. Use console_skills_list/load tools instead.');
+    });
 
     // List available prompts
     this.server.setRequestHandler(ListPromptsRequestSchema, async () => ({
@@ -437,20 +439,16 @@ export class McpServer {
 - regex: search message/args/stack with regex + context lines.
 - keywords: boolean keyword search with AND/OR/exclusions.
 
-**console_sessions** — action: save | load | list
-- save: capture current logs (optionally filtered) under a name/description.
-- load: restore a saved session by ID or name.
-- list: enumerate available sessions.
+**console_browser_execute** — Run JavaScript in page context (full access to globals).
 
-**console_browser_info**
-- Return current page title/URL and optionally HTML for a specific or active tab.
-
-**console_browser_execute** — mode: execute_js | query_dom
-- execute_js: run JS in tab context (provide code + optional tabId).
-- query_dom: extract DOM properties via CSS selectors.
+**console_browser_query** — Query DOM elements by CSS selector.
 
 **console_snapshot**
 - Summarize recent activity (counts, error patterns) over the last 1/5/15 minutes, optionally scoped to a tab.
+
+**console_skills_list / console_skills_load**
+- console_skills_list surfaces project-specific skills defined in .console-bridge/*.md. Filter by tags to only see flows relevant to the current request.
+- console_skills_load fetches the markdown body + metadata for a specific skill (use the slug from the list response).
 
 **Maintenance**
 - Use the extension popup controls to clear logs or download exports directly (outside MCP tools).
@@ -468,10 +466,8 @@ export class McpServer {
 - "from last X minutes" → console_logs(action: "list", after: "5m")
 - "only the latest after refresh" → console_logs(action: "list", tabId: X, sessionScope: "current")
 - "search for X" → console_search(action: "regex", pattern: "X", tabId: X)
-- "save this investigation" → console_sessions(action: "save", name: "checkout-bug")
-- "get current page HTML" → console_browser_info(includeHtml: true)
-- "poke DOM" → console_browser_execute(mode: "query_dom", selector: ".error-message")
-- "toggle feature flag" → console_browser_execute(mode: "execute_js", code: "window.flags.enableBeta()")
+- "query DOM" → console_browser_query(selector: ".error-message")
+- "toggle feature flag" → console_browser_execute(code: "window.flags.enableBeta()")
 - "give me a quick status" → console_snapshot(window: "5m", includeExamples: true)
 
 Use the appropriate Console MCP tools to help the user query and analyze their browser console logs.`,
@@ -498,17 +494,20 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
           case 'console_search':
             return await this.handleSearchTool(args as any);
 
-          case 'console_sessions':
-            return await this.handleSessionsTool(args as any);
-
-          case 'console_browser_info':
-            return await this.handleBrowserInfoTool(args as any);
-
           case 'console_browser_execute':
-            return await this.handleBrowserExecuteTool(args as any);
+            return await this.handleExecuteJS(args as { code: string; tabId?: number });
+
+          case 'console_browser_query':
+            return await this.handleQueryDOM(args as { selector: string; tabId?: number; properties?: string[] });
 
           case 'console_snapshot':
             return await this.handleSnapshotTool(args as any);
+
+          case 'console_skills_list':
+            return await this.handleSkillsListTool(args as any);
+
+          case 'console_skills_load':
+            return await this.handleSkillsLoadTool(args as any);
 
           default:
             throw new Error(`Unknown tool: ${name}`);
@@ -561,41 +560,39 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
     // Sanitization is handled by the extension, not the server
     // This parameter is kept for backward compatibility but has no effect
 
-    // By default, exclude args and stack (minimal response)
-    // User can opt-in to include them
-    logs = logs.map((log) => {
-      const minimal: any = {
-        id: log.id,
-        timestamp: log.timestamp,
-        level: log.level,
-        message: log.message,
-        tabId: log.tabId,
-        url: log.url,
-        sessionId: log.sessionId,
-      };
+    // Plain text format - much more token efficient
+    const lines: string[] = [];
+
+    // Header with metadata
+    const firstLog = logs[0];
+    const commonUrl = logs.every((l) => l.url === firstLog?.url) ? firstLog?.url : undefined;
+    if (commonUrl) lines.push(`url: ${commonUrl}`);
+    lines.push(`showing ${logs.length}/${total}${offset + limit < total ? ' (hasMore)' : ''}`);
+    lines.push('---');
+
+    // Log lines: [level] HH:MM:SS.mmm message (id)
+    for (const log of logs) {
+      const ts = new Date(log.timestamp);
+      const time = `${ts.getHours().toString().padStart(2, '0')}:${ts.getMinutes().toString().padStart(2, '0')}:${ts.getSeconds().toString().padStart(2, '0')}.${ts.getMilliseconds().toString().padStart(3, '0')}`;
+      let line = `[${log.level}] ${time} ${log.message}`;
 
       if (args.includeArgs && Array.isArray(log.args) && log.args.length > 0) {
-        minimal.args = log.args;
+        line += ` | args: ${JSON.stringify(log.args)}`;
       }
+
+      line += ` (${log.id})`;
+      lines.push(line);
 
       if (args.includeStack && log.stack) {
-        minimal.stack = log.stack;
+        lines.push(`  ${log.stack.replace(/\n/g, '\n  ')}`);
       }
-
-      return minimal;
-    });
+    }
 
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify({
-            logs,
-            total,
-            offset,
-            limit,
-            hasMore: offset + limit < total,
-          }),
+          text: lines.join('\n'),
         },
       ],
     };
@@ -746,66 +743,6 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
     });
   }
 
-  private async handleSessionsTool(args: {
-    action?: 'save' | 'load' | 'list';
-    filter?: FilterOptions;
-    name?: string;
-    description?: string;
-    sessionId?: string;
-  }) {
-    const action = args?.action || 'list';
-
-    if (action === 'save') {
-      return this.handleSaveSession({
-        filter: args.filter,
-        name: args.name,
-        description: args.description,
-      });
-    }
-
-    if (action === 'load') {
-      if (!args?.sessionId) {
-        throw new Error('sessionId is required for console_sessions action=load');
-      }
-      return this.handleLoadSession({ sessionId: args.sessionId });
-    }
-
-    return this.handleListSessions();
-  }
-
-  private async handleBrowserInfoTool(args: { tabId?: number; includeHtml?: boolean }) {
-    return this.handleGetPageInfo({
-      tabId: args.tabId,
-      includeHtml: args.includeHtml,
-    });
-  }
-
-  private async handleBrowserExecuteTool(args: {
-    mode?: 'execute_js' | 'query_dom';
-    code?: string;
-    tabId?: number;
-    selector?: string;
-    properties?: string[];
-  }) {
-    const mode = args?.mode || 'execute_js';
-
-    if (mode === 'query_dom') {
-      if (!args?.selector) {
-        throw new Error('selector is required for console_browser_execute mode=query_dom');
-      }
-      return this.handleQueryDOM({
-        selector: args.selector,
-        tabId: args.tabId,
-        properties: args.properties,
-      } as any);
-    }
-
-    if (!args?.code) {
-      throw new Error('code is required for console_browser_execute mode=execute_js');
-    }
-    return this.handleExecuteJS({ code: args.code, tabId: args.tabId });
-  }
-
   private async handleSnapshotTool(args: {
     window?: '1m' | '5m' | '15m';
     tabId?: number;
@@ -838,6 +775,46 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
         },
       ],
     };
+  }
+
+  private async handleSkillsListTool(args: { tags?: string[]; projectPath: string }) {
+    const { skills, directory } = await loadProjectSkills({ directory: args.projectPath });
+    if (!skills.length) {
+      return this.buildSkillsMessage({
+        total: 0,
+        directory,
+        message:
+          'No project skills detected. Add markdown files to `.console-bridge/` (in the specified project path) to teach the agent about this project.',
+      });
+    }
+
+    const normalizedTags = args?.tags?.map((tag) => tag.toLowerCase()) ?? [];
+    const filteredSkills =
+      normalizedTags.length === 0
+        ? skills
+        : skills.filter((skill) => {
+            const skillTags = skill.tags.map((tag) => tag.toLowerCase());
+            return normalizedTags.every((tag) => skillTags.includes(tag));
+          });
+
+    return this.buildSkillsMessage({
+      total: filteredSkills.length,
+      directory,
+      skills: filteredSkills.map((skill) => this.serializeSkill(skill)),
+    });
+  }
+
+  private async handleSkillsLoadTool(args: { slug: string; projectPath: string }) {
+    const { skills, directory } = await loadProjectSkills({ directory: args.projectPath });
+    const skill = skills.find((candidate) => candidate.id === args.slug);
+    if (!skill) {
+      throw new Error(`Unknown skill: ${args.slug}.`);
+    }
+
+    return this.buildSkillsMessage({
+      directory,
+      skill: this.serializeSkill(skill, { includeBody: true }),
+    });
   }
 
   private resolveSessionIdForScope(
@@ -978,6 +955,29 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
     };
   }
 
+  private serializeSkill(skill: ProjectSkill, options?: { includeBody?: boolean }) {
+    return {
+      id: skill.id,
+      title: skill.title,
+      description: skill.description,
+      tags: skill.tags,
+      flow: skill.flow,
+      sourcePath: skill.sourcePath,
+      body: options?.includeBody ? skill.body : undefined,
+    };
+  }
+
+  private buildSkillsMessage(payload: Record<string, unknown>) {
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(payload, null, 2),
+        },
+      ],
+    };
+  }
+
   private async handleGetLog(args: { id: string; sanitize?: boolean }) {
     const logs = this.storage.getAll();
     const log = logs.find((l) => l.id === args.id);
@@ -986,14 +986,29 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
       throw new Error(`Log not found: ${args.id}`);
     }
 
-    // Sanitization is handled by the extension, not the server
-    // This parameter is kept for backward compatibility but has no effect
+    // Plain text for single log - full details
+    const ts = new Date(log.timestamp);
+    const time = `${ts.getHours().toString().padStart(2, '0')}:${ts.getMinutes().toString().padStart(2, '0')}:${ts.getSeconds().toString().padStart(2, '0')}.${ts.getMilliseconds().toString().padStart(3, '0')}`;
+
+    const lines: string[] = [
+      `[${log.level}] ${time} ${log.message}`,
+      `id: ${log.id}`,
+      `url: ${log.url}`,
+      `tab: ${log.tabId}`,
+    ];
+
+    if (log.args?.length) {
+      lines.push(`args: ${JSON.stringify(log.args)}`);
+    }
+    if (log.stack) {
+      lines.push(`stack:\n  ${log.stack.replace(/\n/g, '\n  ')}`);
+    }
 
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify(log, null, 2),
+          text: lines.join('\n'),
         },
       ],
     };
@@ -1021,29 +1036,14 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
 
     const result = this.searchEngine.search(logs, searchParams);
 
-    // Strip args/stack from results unless explicitly requested
-    if (!args.includeArgs || !args.includeStack) {
-      result.matches = result.matches.map((match) => ({
-        ...match,
-        log: this.stripLogFields(match.log, args.includeArgs, args.includeStack),
-        context: match.context
-          ? {
-              before: match.context.before.map((log) =>
-                this.stripLogFields(log, args.includeArgs, args.includeStack),
-              ),
-              after: match.context.after.map((log) =>
-                this.stripLogFields(log, args.includeArgs, args.includeStack),
-              ),
-            }
-          : undefined,
-      }));
-    }
+    // Plain text output
+    const output = this.formatSearchResults(result, args.pattern, args.includeArgs, args.includeStack);
 
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify(result),
+          text: output,
         },
       ],
     };
@@ -1069,29 +1069,15 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
 
     const result = this.searchEngine.searchKeywords(logs, searchParams);
 
-    // Strip args/stack from results unless explicitly requested
-    if (!args.includeArgs || !args.includeStack) {
-      result.matches = result.matches.map((match) => ({
-        ...match,
-        log: this.stripLogFields(match.log, args.includeArgs, args.includeStack),
-        context: match.context
-          ? {
-              before: match.context.before.map((log) =>
-                this.stripLogFields(log, args.includeArgs, args.includeStack),
-              ),
-              after: match.context.after.map((log) =>
-                this.stripLogFields(log, args.includeArgs, args.includeStack),
-              ),
-            }
-          : undefined,
-      }));
-    }
+    // Plain text output
+    const query = `keywords: ${args.keywords.join(args.logic === 'OR' ? ' OR ' : ' AND ')}`;
+    const output = this.formatSearchResults(result, query, args.includeArgs, args.includeStack);
 
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify(result),
+          text: output,
         },
       ],
     };
@@ -1102,25 +1088,24 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
     filter?: FilterOptions;
     lines?: number;
   }) {
-    const lines = args.lines || 10;
+    const lineCount = args.lines || 10;
     const allLogs = args.filter ? this.storage.getAll(args.filter) : this.storage.getAll();
-    const recentLogs = allLogs.slice(-lines);
+    const recentLogs = allLogs.slice(-lineCount);
 
-    // Note: This is a simplified implementation
-    // In a real streaming scenario, we'd use MCP's sampling feature
+    // Plain text format
+    const output: string[] = [`tail: last ${recentLogs.length} of ${allLogs.length}`, '---'];
+
+    for (const log of recentLogs) {
+      const ts = new Date(log.timestamp);
+      const time = `${ts.getHours().toString().padStart(2, '0')}:${ts.getMinutes().toString().padStart(2, '0')}:${ts.getSeconds().toString().padStart(2, '0')}.${ts.getMilliseconds().toString().padStart(3, '0')}`;
+      output.push(`[${log.level}] ${time} ${log.message} (${log.id})`);
+    }
+
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify(
-            {
-              logs: recentLogs,
-              total: allLogs.length,
-              message: 'Note: Real-time streaming requires MCP sampling support',
-            },
-            null,
-            2,
-          ),
+          text: output.join('\n'),
         },
       ],
     };
@@ -1133,20 +1118,23 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
       logCount: this.storage.getTabCount(tab.id),
     }));
 
+    if (tabStats.length === 0) {
+      return {
+        content: [{ type: 'text', text: 'No browser tabs connected' }],
+      };
+    }
+
+    // Plain text table format
+    const lines = [`${tabStats.length} tabs connected`, '---'];
+    for (const tab of tabStats) {
+      const active = tab.isActive ? '*' : ' ';
+      lines.push(`${active}[${tab.id}] ${tab.title || '(no title)'}`);
+      lines.push(`  url: ${tab.url}`);
+      lines.push(`  logs: ${tab.logCount}, session: ${tab.sessionId || 'none'}`);
+    }
+
     return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(
-            {
-              tabs: tabStats,
-              total: tabs.length,
-            },
-            null,
-            2,
-          ),
-        },
-      ],
+      content: [{ type: 'text', text: lines.join('\n') }],
     };
   }
 
@@ -1172,7 +1160,6 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
       totalLogs: this.storage.getTotalCount(),
       activeTabs: this.storage.getAllTabs().length,
       wsConnections: this.wsServer.getConnectionCount(),
-      sessions: this.sessionManager.getCount(),
       tabs: this.wsServer.getTabs().map((tab) => ({
         id: tab.id,
         url: tab.url,
@@ -1211,65 +1198,6 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
     };
   }
 
-  private async handleSaveSession(args: {
-    filter?: FilterOptions;
-    name?: string;
-    description?: string;
-  }) {
-    const logs = args.filter ? this.storage.getAll(args.filter) : this.storage.getAll();
-    const sessionId = this.sessionManager.save(logs, args.name, args.description);
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(
-            {
-              sessionId,
-              name: args.name,
-              description: args.description,
-              logCount: logs.length,
-              message: args.name
-                ? `Session saved as "${args.name}" (ID: ${sessionId})`
-                : `Session saved with ID: ${sessionId}`,
-            },
-            null,
-            2,
-          ),
-        },
-      ],
-    };
-  }
-
-  private async handleLoadSession(args: { sessionId: string }) {
-    const logs = this.sessionManager.load(args.sessionId);
-    if (!logs) {
-      throw new Error(`Session not found: ${args.sessionId}`);
-    }
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({ logs, total: logs.length }, null, 2),
-        },
-      ],
-    };
-  }
-
-  private async handleListSessions() {
-    const sessions = this.sessionManager.list();
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({ sessions, total: sessions.length }, null, 2),
-        },
-      ],
-    };
-  }
-
   private async handleGetStats() {
     const stats = this.getStatsSnapshot();
 
@@ -1297,15 +1225,7 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
         content: [
           {
             type: 'text',
-            text: JSON.stringify(
-              {
-                suggestions: [],
-                message:
-                  'No browser tabs currently connected. Make sure the Console MCP extension is installed and active.',
-              },
-              null,
-              2,
-            ),
+            text: 'No browser tabs connected. Ensure Console MCP extension is installed and active.',
           },
         ],
       };
@@ -1327,117 +1247,78 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
     const limit = args.limit || 5;
     const topSuggestions = suggestions.slice(0, limit);
 
+    // Plain text format
+    const lines = [`${topSuggestions.length} suggestions (of ${suggestions.length} total)`, '---'];
+    for (const s of topSuggestions) {
+      const active = s.tab.isActive ? '*' : ' ';
+      lines.push(`${active}[${s.tab.id}] score:${s.score} ${s.tab.title || '(no title)'}`);
+      lines.push(`  url: ${s.tab.url}`);
+      lines.push(`  logs: ${s.logCount}, reasons: ${s.reasons.join(', ')}`);
+    }
+
     return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(
-            {
-              suggestions: topSuggestions.map((s) => ({
-                tabId: s.tab.id,
-                url: s.tab.url,
-                title: s.tab.title,
-                isActive: s.tab.isActive,
-                lastNavigationAt: s.tab.lastNavigationAt,
-                score: s.score,
-                reasons: s.reasons,
-                logCount: s.logCount,
-                lastActivity: s.lastActivity,
-              })),
-              total: suggestions.length,
-              context: {
-                workingDirectory: context.workingDirectory,
-                appliedFilters: {
-                  urlPatterns: args.urlPatterns,
-                  ports: args.ports,
-                  domains: args.domains,
-                },
-              },
-            },
-            null,
-            2,
-          ),
-        },
-      ],
+      content: [{ type: 'text', text: lines.join('\n') }],
     };
   }
 
-  private stripLogFields(log: any, includeArgs?: boolean, includeStack?: boolean): any {
-    const minimal: any = {
-      id: log.id,
-      timestamp: log.timestamp,
-      level: log.level,
-      message: log.message,
-      tabId: log.tabId,
-      url: log.url,
-      sessionId: log.sessionId,
-    };
+  private formatLogLine(
+    log: { timestamp: string; level: string; message: string; id: string; args?: unknown[]; stack?: string },
+    opts?: { includeArgs?: boolean; includeStack?: boolean; prefix?: string },
+  ): string[] {
+    const ts = new Date(log.timestamp);
+    const time = `${ts.getHours().toString().padStart(2, '0')}:${ts.getMinutes().toString().padStart(2, '0')}:${ts.getSeconds().toString().padStart(2, '0')}.${ts.getMilliseconds().toString().padStart(3, '0')}`;
+    const prefix = opts?.prefix ?? '';
 
-    if (includeArgs && Array.isArray(log.args) && log.args.length > 0) {
-      minimal.args = log.args;
+    let line = `${prefix}[${log.level}] ${time} ${log.message}`;
+    if (opts?.includeArgs && Array.isArray(log.args) && log.args.length > 0) {
+      line += ` | args: ${JSON.stringify(log.args)}`;
+    }
+    line += ` (${log.id})`;
+
+    const lines = [line];
+    if (opts?.includeStack && log.stack) {
+      lines.push(`${prefix}  ${log.stack.replace(/\n/g, `\n${prefix}  `)}`);
+    }
+    return lines;
+  }
+
+  private formatSearchResults(
+    result: { matches: Array<{ log: any; matchedText: string; context?: { before: any[]; after: any[] } }>; total: number },
+    query: string,
+    includeArgs?: boolean,
+    includeStack?: boolean,
+  ): string {
+    const lines: string[] = [`search: ${query}`, `found: ${result.total} matches`, '---'];
+
+    for (const match of result.matches) {
+      // Context before
+      if (match.context?.before.length) {
+        for (const ctx of match.context.before) {
+          lines.push(...this.formatLogLine(ctx, { prefix: '  ' }));
+        }
+      }
+
+      // Matched log (highlighted with >)
+      lines.push(...this.formatLogLine(match.log, { prefix: '> ', includeArgs, includeStack }));
+
+      // Context after
+      if (match.context?.after.length) {
+        for (const ctx of match.context.after) {
+          lines.push(...this.formatLogLine(ctx, { prefix: '  ' }));
+        }
+      }
+
+      lines.push(''); // blank line between matches
     }
 
-    if (includeStack && log.stack) {
-      minimal.stack = log.stack;
-    }
-
-    return minimal;
+    return lines.join('\n');
   }
 
   private async handleExecuteJS(args: { code: string; tabId?: number }) {
-    try {
-      const result = await this.wsServer.executeJS(args.code, args.tabId);
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                success: true,
-                result,
-                code: args.code,
-                tabId: args.tabId,
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
-    } catch (error) {
-      throw new Error(
-        `Failed to execute JavaScript: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
-  }
-
-  private async handleGetPageInfo(args: { tabId?: number; includeHtml?: boolean }) {
-    try {
-      const pageInfo = await this.wsServer.getPageInfo(args.tabId, args.includeHtml);
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                title: pageInfo.title,
-                url: pageInfo.url,
-                html: pageInfo.html,
-                tabId: args.tabId,
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
-    } catch (error) {
-      throw new Error(
-        `Failed to get page info: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
+    const result = await this.wsServer.executeJS(args.code, args.tabId);
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result) }],
+    };
   }
 
   private async handleQueryDOM(args: { selector: string; tabId?: number; properties?: string[] }) {

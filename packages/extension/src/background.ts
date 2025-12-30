@@ -526,24 +526,20 @@ function handleConsoleLog(log: LogMessage, sender: chrome.runtime.MessageSender)
 }
 
 async function handleServerMessage(message: any): Promise<void> {
-  // Handle browser commands from server
-  if (
-    message.type === 'execute_js' ||
-    message.type === 'get_page_info' ||
-    message.type === 'query_dom'
-  ) {
-    const targetTabId = message.data.tabId;
-
-    // If no tabId specified, use active tab
-    let tabId = targetTabId;
-    if (!tabId) {
-      const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      tabId = activeTabs[0]?.id;
+  if (message.type === 'execute_js') {
+    const tabId = await resolveTargetTabId(message.data.tabId);
+    if (tabId === undefined) {
+      sendExecuteResponse(message.data.requestId, { error: 'No target tab found' });
+      return;
     }
 
-    if (!tabId) {
-      console.error('[Background] No target tab found for command');
-      // Send error response back to server
+    await handleExecuteJsCommand(tabId, message);
+    return;
+  }
+
+  if (message.type === 'get_page_info' || message.type === 'query_dom') {
+    const tabId = await resolveTargetTabId(message.data.tabId);
+    if (tabId === undefined) {
       if (wsClient) {
         wsClient.send({
           type: `${message.type}_response`,
@@ -557,16 +553,12 @@ async function handleServerMessage(message: any): Promise<void> {
     }
 
     try {
-      // Forward command to content script
       const response = await chrome.tabs.sendMessage(tabId, message);
-
-      // Forward response back to server
       if (response) {
-        wsClient.send(response);
+        wsClient?.send(response);
       }
     } catch (error) {
       console.error('[Background] Failed to send command to content script:', error);
-      // Send error response back to server
       if (wsClient) {
         wsClient.send({
           type: `${message.type}_response`,
@@ -578,6 +570,82 @@ async function handleServerMessage(message: any): Promise<void> {
       }
     }
   }
+}
+
+async function resolveTargetTabId(preferredTabId?: number): Promise<number | undefined> {
+  if (preferredTabId) {
+    return preferredTabId;
+  }
+  const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  return activeTabs[0]?.id;
+}
+
+async function handleExecuteJsCommand(tabId: number, message: any): Promise<void> {
+  const requestId = message.data.requestId;
+  const code = message.data.code;
+
+  const expression = `(async () => {\n${code}\n})()`;
+
+  try {
+    await chrome.debugger.attach({ tabId }, '1.3');
+
+    try {
+      const response = (await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
+        expression,
+        returnByValue: true,
+        awaitPromise: true,
+        userGesture: true,
+      })) as {
+        result?: { type?: string; value?: unknown; description?: string };
+        exceptionDetails?: {
+          text?: string;
+          exception?: { description?: string; value?: string };
+        };
+      };
+
+      if (response?.exceptionDetails) {
+        const details = response.exceptionDetails;
+        const errorMessage =
+          details.exception?.description ||
+          details.exception?.value ||
+          details.text ||
+          'JavaScript execution failed';
+        sendExecuteResponse(requestId, { error: errorMessage });
+        return;
+      }
+
+      const result = response?.result?.value ?? response?.result?.description;
+      sendExecuteResponse(requestId, { result });
+    } finally {
+      await chrome.debugger.detach({ tabId }).catch(() => {});
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    if (errorMessage.includes('Another debugger is already attached')) {
+      sendExecuteResponse(requestId, {
+        error:
+          'Cannot execute: DevTools or another debugger is attached to this tab. Close DevTools and retry.',
+      });
+      return;
+    }
+
+    sendExecuteResponse(requestId, { error: errorMessage });
+  }
+}
+
+function sendExecuteResponse(
+  requestId: string,
+  payload: { result?: unknown; error?: string },
+): void {
+  wsClient?.send({
+    type: 'execute_js_response',
+    data: {
+      requestId,
+      result: payload.result,
+      error: payload.error,
+    },
+  } as any);
 }
 
 // Handle tab closure

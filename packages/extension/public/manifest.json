@@ -3,7 +3,7 @@
   "name": "console-bridge",
   "version": "0.1.0",
   "description": "Captures browser console logs and sends them to MCP server for AI analysis",
-  "permissions": ["activeTab", "storage", "tabs"],
+  "permissions": ["activeTab", "storage", "tabs", "scripting", "debugger"],
   "host_permissions": ["<all_urls>"],
   "icons": {
     "16": "icon-16.png",
