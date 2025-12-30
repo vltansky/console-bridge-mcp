@@ -30,11 +30,12 @@ The server follows a modular architecture with specialized engines:
 
 ### Extension Architecture (`packages/extension/src/`)
 
-- **`background.ts`**: Service worker managing WebSocket connection and extension state
+- **`background.ts`**: Service worker managing WebSocket connection, tab tracking, and extension state
 - **`content-script.ts`**: Injected into pages to intercept console calls
-- **`lib/console-interceptor.ts`**: Intercepts console.log/warn/error/etc and captures logs
+- **`lib/console-interceptor.ts`**: Intercepts console.log/warn/error/etc and captures logs with serialization
 - **`lib/websocket-client.ts`**: Batched WebSocket client sending logs to server
-- **`popup/`**: Extension popup UI for configuration
+- **`lib/sanitizer.ts`**: Client-side data sanitization (masks API keys, JWTs, emails, credentials)
+- **`popup/`**: Extension popup UI for connection status and maintenance controls
 
 ### Data Flow
 
@@ -94,7 +95,6 @@ Server configuration via environment variables:
 - `CONSOLE_MCP_DISCOVERY_PORT=9846` - HTTP discovery & maintenance server port
 - `CONSOLE_MCP_MAX_LOGS=10000` - Maximum logs to store in memory
 - `CONSOLE_MCP_LOG_TTL_MINUTES=60` - Minutes before in-memory logs expire (set <= 0 to disable TTL)
-- `CONSOLE_MCP_SKILLS_DIR=.console-bridge` - Optional override for the skills directory scanned at startup
 
 ## Code Standards
 
@@ -120,8 +120,9 @@ Server configuration via environment variables:
 
 ### WebSocket Protocol
 Messages between extension and server follow typed protocols:
-- **Extension → Server**: `ExtensionMessage` (log, tab_opened, tab_closed, heartbeat)
-- **Server → Extension**: `ServerMessage` (configure, ping)
+- **Extension → Server**: `ExtensionMessage` (log, tab_opened, tab_updated, tab_closed, heartbeat)
+- **Server → Extension**: `ServerMessage` (configure, ping, execute_js, get_page_info, query_dom)
+- **Browser Command Responses**: `BrowserCommandResponse` (execute_js_response, page_info_response, query_dom_response)
 
 All messages validated with Zod schemas at runtime.
 
@@ -147,6 +148,11 @@ All eight MCP tools are defined in `mcp-server.ts`:
 - `console_logs` and `console_search` accept `sessionScope` (`"all"` or `"current"`) to focus on the latest navigation/session per tab
 - `console_skills_list` surfaces markdown skills discovered in `.console-bridge/` for a given `projectPath`; `console_skills_load` returns the markdown body for a specific slug
 - Maintenance actions (clear/export/stats) are available via the HTTP discovery server endpoints and browser extension popup, not as MCP tools
+
+### MCP Prompts
+Two prompts are exposed for quick onboarding:
+- `use-console-mcp`: Provides usage instructions for all console-bridge tools with common patterns
+- `create-browser-skill`: Guides creation of project-specific debugging skills in `.console-bridge/`
 
 ## Testing Strategy
 
