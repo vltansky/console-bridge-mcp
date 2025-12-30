@@ -11,10 +11,10 @@ import {
 import type { FilterOptions, KeywordSearchParams, SearchParams } from 'console-bridge-shared';
 import { ExportEngine } from './export-engine.js';
 import type { LogStorage } from './log-storage.js';
+import { type ProjectSkill, loadProjectSkills } from './project-skills.js';
 import { Sanitizer } from './sanitizer.js';
 import { SearchEngine } from './search-engine.js';
 import { type SuggestionContext, TabSuggester } from './tab-suggester.js';
-import { loadProjectSkills, type ProjectSkill } from './project-skills.js';
 import type { ConsoleWebSocketServer } from './websocket-server.js';
 
 export class McpServer {
@@ -286,7 +286,8 @@ export class McpServer {
         },
         {
           name: 'console_browser_execute',
-          description: 'Execute JavaScript in the page context. Has full access to page globals (window, document, etc).',
+          description:
+            'Execute JavaScript in the page context. Has full access to page globals (window, document, etc).',
           inputSchema: {
             type: 'object',
             properties: {
@@ -358,8 +359,7 @@ export class McpServer {
             properties: {
               projectPath: {
                 type: 'string',
-                description:
-                  'Absolute path to the project root (where `.console-bridge/` lives).',
+                description: 'Absolute path to the project root (where `.console-bridge/` lives).',
               },
               tags: {
                 type: 'array',
@@ -383,8 +383,7 @@ export class McpServer {
               },
               projectPath: {
                 type: 'string',
-                description:
-                  'Absolute path to the project root (where `.console-bridge/` lives).',
+                description: 'Absolute path to the project root (where `.console-bridge/` lives).',
               },
             },
             required: ['slug', 'projectPath'],
@@ -498,7 +497,9 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
             return await this.handleExecuteJS(args as { code: string; tabId?: number });
 
           case 'console_browser_query':
-            return await this.handleQueryDOM(args as { selector: string; tabId?: number; properties?: string[] });
+            return await this.handleQueryDOM(
+              args as { selector: string; tabId?: number; properties?: string[] },
+            );
 
           case 'console_snapshot':
             return await this.handleSnapshotTool(args as any);
@@ -1037,7 +1038,12 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
     const result = this.searchEngine.search(logs, searchParams);
 
     // Plain text output
-    const output = this.formatSearchResults(result, args.pattern, args.includeArgs, args.includeStack);
+    const output = this.formatSearchResults(
+      result,
+      args.pattern,
+      args.includeArgs,
+      args.includeStack,
+    );
 
     return {
       content: [
@@ -1262,7 +1268,14 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
   }
 
   private formatLogLine(
-    log: { timestamp: string; level: string; message: string; id: string; args?: unknown[]; stack?: string },
+    log: {
+      timestamp: string;
+      level: string;
+      message: string;
+      id: string;
+      args?: unknown[];
+      stack?: string;
+    },
     opts?: { includeArgs?: boolean; includeStack?: boolean; prefix?: string },
   ): string[] {
     const ts = new Date(log.timestamp);
@@ -1283,7 +1296,10 @@ Use the appropriate Console MCP tools to help the user query and analyze their b
   }
 
   private formatSearchResults(
-    result: { matches: Array<{ log: any; matchedText: string; context?: { before: any[]; after: any[] } }>; total: number },
+    result: {
+      matches: Array<{ log: any; matchedText: string; context?: { before: any[]; after: any[] } }>;
+      total: number;
+    },
     query: string,
     includeArgs?: boolean,
     includeStack?: boolean,
