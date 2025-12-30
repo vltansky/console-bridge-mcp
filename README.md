@@ -25,7 +25,7 @@ Let your agent see what you see — capture logs, debug errors, and inspect the 
 
 ### 2. Add MCP Server
 
-**Cursor** (one-click): [Install](https://cursor.com/en/install-mcp?name=console-bridge&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsImNvbnNvbGUtYnJpZGdlQGxhdGVzdCJdfQ==)
+**Cursor** (one-click): [Install](https://cursor.com/en/install-mcp?name=console-bridge&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsImNvbnNvbGUtYnJpZGdlLW1jcEBsYXRlc3QiXX0=)
 
 **Manual** — add to your MCP config:
 
