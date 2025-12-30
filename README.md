@@ -4,9 +4,9 @@
 
 # console-bridge
 
-**Bridge browser console logs to AI assistants**
+**Give your AI assistant access to browser console logs**
 
-Capture, search, and debug console logs in real-time — all through natural language.
+Let your agent see what you see — capture logs, debug errors, and inspect the DOM in real-time.
 
 </div>
 
