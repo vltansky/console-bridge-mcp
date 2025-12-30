@@ -23,6 +23,6 @@
     "node": ">=18.0.0"
   },
   "keywords": ["mcp", "console", "logging", "browser", "debugging", "chrome-extension", "console-bridge"],
-  "author": "",
+  "author": "Vlad Tansky",
   "license": "MIT"
 }
