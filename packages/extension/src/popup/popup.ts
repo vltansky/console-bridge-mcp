@@ -77,23 +77,34 @@ async function updateStats(): Promise<void> {
   try {
     const response = await chrome.runtime.sendMessage({ type: 'get_status' });
 
-    if (response.enabled) {
-      setToggleState(true);
-    } else {
-      setToggleState(false);
-    }
-
     const status = response.status || (response.connected ? 'connected' : 'disconnected');
+    const connected = status === 'connected';
     const attempts = response.reconnectAttempts || 0;
+
+    setToggleState(response.enabled, connected);
     updateStatus(status, attempts);
   } catch (error) {
     console.error('Failed to get status:', error);
+    setToggleState(false, false);
     updateStatus('disconnected');
   }
 }
 
-function setToggleState(enabled: boolean): void {
-  toggleText.textContent = enabled ? 'Capture Enabled' : 'Capture Disabled';
+let lastKnownConnected = false;
+
+function setToggleState(enabled: boolean, connected = lastKnownConnected): void {
+  lastKnownConnected = connected;
+
+  let label: string;
+  if (!enabled) {
+    label = 'Capture Disabled';
+  } else if (!connected) {
+    label = 'Capture Paused (Offline)';
+  } else {
+    label = 'Capture Enabled';
+  }
+
+  toggleText.textContent = label;
   toggleBtn.className = `flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all duration-200 ${enabled ? toggleEnabledClasses : toggleDisabledClasses}`;
 }
 
@@ -103,7 +114,7 @@ function renderTabs(): void {
   }
   if (cachedTabs.length === 0) {
     tabsList.innerHTML = `
-      <div class="flex flex-col items-center justify-center h-full text-ink-500 gap-2 py-4">
+      <div class="flex flex-col gap-2 justify-center items-center py-4 h-full text-ink-500">
         <span class="text-xs">No active tabs connected</span>
       </div>`;
     return;
@@ -113,9 +124,9 @@ function renderTabs(): void {
     .map(
       (tab: any) => `
         <div class="group flex items-center justify-between p-2.5 rounded-lg border border-transparent hover:bg-ink-800/50 hover:border-ink-800 transition-all cursor-default">
-          <div class="flex-1 min-w-0 pr-3">
+          <div class="flex-1 pr-3 min-w-0">
             <div class="flex items-center gap-2 mb-0.5">
-               <div class="font-medium text-xs text-ink-100 truncate" title="${escapeHtml(tab.title || 'Untitled')}">${escapeHtml(tab.title || 'Untitled')}</div>
+               <div class="text-xs font-medium truncate text-ink-100" title="${escapeHtml(tab.title || 'Untitled')}">${escapeHtml(tab.title || 'Untitled')}</div>
                ${
                  tab.isActive
                    ? '<span class="h-1.5 w-1.5 rounded-full bg-accent-primary" title="Active"></span>'
