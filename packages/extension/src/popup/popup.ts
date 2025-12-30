@@ -6,11 +6,11 @@ const toggleBtn = document.getElementById('toggle-btn') as HTMLButtonElement;
 const toggleText = document.getElementById('toggle-text') as HTMLElement;
 const activeTabsEl = document.getElementById('active-tabs') as HTMLElement;
 const tabsList = document.getElementById('tabs-list') as HTMLElement;
-const refreshTabsBtn = document.getElementById('refresh-tabs-btn') as HTMLButtonElement;
 const sanitizeCheckbox = document.getElementById('sanitize-checkbox') as HTMLInputElement;
 const captureErrorsCheckbox = document.getElementById(
   'capture-errors-checkbox',
 ) as HTMLInputElement;
+const clearLogsBtn = document.getElementById('clear-logs-btn') as HTMLButtonElement;
 
 // Classes for states
 const toggleEnabledClasses =
@@ -184,19 +184,40 @@ captureErrorsCheckbox.addEventListener('change', async () => {
   });
 });
 
-if (refreshTabsBtn) {
-  refreshTabsBtn.addEventListener('click', async () => {
-    refreshTabsBtn.disabled = true;
-    const icon = refreshTabsBtn.querySelector('svg');
-    if (icon) icon.classList.add('animate-spin');
+// Clear logs
+if (clearLogsBtn) {
+  clearLogsBtn.addEventListener('click', async () => {
+    if (!confirm('Clear all logs? This cannot be undone.')) {
+      return;
+    }
+
+    clearLogsBtn.disabled = true;
+    const originalText = clearLogsBtn.textContent;
 
     try {
-      await updateTabs();
-    } finally {
+      const response = await chrome.runtime.sendMessage({ type: 'maintenance_clear' });
+      if (response.error) {
+        console.error('Failed to clear logs:', response.error);
+        clearLogsBtn.textContent = 'Error';
+        setTimeout(() => {
+          clearLogsBtn.textContent = originalText;
+          clearLogsBtn.disabled = false;
+        }, 2000);
+      } else {
+        clearLogsBtn.textContent = 'Cleared';
+        setTimeout(() => {
+          clearLogsBtn.textContent = originalText;
+          clearLogsBtn.disabled = false;
+        }, 1000);
+        await updateTabs();
+      }
+    } catch (error) {
+      console.error('Failed to clear logs:', error);
+      clearLogsBtn.textContent = 'Error';
       setTimeout(() => {
-        refreshTabsBtn.disabled = false;
-        if (icon) icon.classList.remove('animate-spin');
-      }, 400);
+        clearLogsBtn.textContent = originalText;
+        clearLogsBtn.disabled = false;
+      }, 2000);
     }
   });
 }

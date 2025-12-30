@@ -41,11 +41,6 @@
             Active Tabs
             <span id="active-tabs" class="bg-ink-800 text-ink-300 text-[10px] px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">0</span>
           </h2>
-          <button id="refresh-tabs-btn" class="p-1.5 text-ink-400 hover:text-white hover:bg-ink-800 rounded-md transition-colors" title="Refresh">
-             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-             </svg>
-          </button>
         </div>
 
         <div id="tabs-list" class="flex-1 overflow-y-auto min-h-[140px] space-y-1 pr-1 custom-scrollbar">
@@ -76,6 +71,11 @@
           </label>
         </div>
 
+        <div class="pt-3 px-1">
+          <button id="clear-logs-btn" class="w-full py-2 px-3 rounded-lg text-xs font-medium text-ink-400 hover:text-ink-200 hover:bg-ink-800/50 border border-ink-800/50 hover:border-ink-700 transition-colors">
+            Clear All Logs
+          </button>
+        </div>
       </div>
 
       <!-- Footer Info -->
