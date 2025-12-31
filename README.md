@@ -32,20 +32,11 @@ Unlike browser automation tools that require you to connect each tab, **console-
 
 ## Quick Start
 
-### 1. Install Extension
+console-bridge requires two components: a **browser extension** (captures logs) and an **MCP server** (stores/queries logs).
 
-1. Download `console-bridge-ext-v*.zip` from the [latest release](https://github.com/vltansky/console-bridge-mcp/releases/latest)
-2. Unzip to a permanent location (e.g., `~/.console-bridge-extension`)
-3. Open Chrome → `chrome://extensions`
-4. Enable "Developer mode" (toggle in top right)
-5. Click "Load unpacked" → select the unzipped folder
-6. Click the extension icon in toolbar → verify it shows "Connected"
+### 1. Install MCP Server
 
-### 2. Add MCP Server
-
-**Cursor** (one-click): [Install](https://cursor.com/en/install-mcp?name=console-bridge&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsImNvbnNvbGUtYnJpZGdlLW1jcEBsYXRlc3QiXX0=)
-
-**Claude Code** — add to `~/.claude.json`:
+**Standard config** (works with most MCP clients):
 
 ```json
 {
@@ -58,21 +49,73 @@ Unlike browser automation tools that require you to connect each tab, **console-
 }
 ```
 
-**Other MCP clients** — add to your MCP config file.
+[<img src="https://cursor.com/deeplink/mcp-install-dark.svg" alt="Install in Cursor" height="32">](https://cursor.com/en/install-mcp?name=console-bridge&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsImNvbnNvbGUtYnJpZGdlLW1jcEBsYXRlc3QiXX0=)
 
-### 3. Use It
+<details>
+<summary>Claude Code</summary>
 
-```
-Show me all errors from localhost:3000
-```
-
-```
-Search for "authentication failed" in the last 5 minutes
+```bash
+claude mcp add console-bridge -- npx -y console-bridge-mcp@latest
 ```
 
+Or add to `~/.claude.json`:
+
+```json
+{
+  "mcpServers": {
+    "console-bridge": {
+      "command": "npx",
+      "args": ["-y", "console-bridge-mcp@latest"]
+    }
+  }
+}
 ```
-Execute: localStorage.getItem('token')
+
+</details>
+
+<details>
+<summary>VS Code</summary>
+
+Add to your VS Code settings or use the CLI:
+
+```bash
+code --add-mcp '{"name":"console-bridge","command":"npx","args":["-y","console-bridge-mcp@latest"]}'
 ```
+
+</details>
+
+<details>
+<summary>Windsurf</summary>
+
+Follow Windsurf MCP [documentation](https://docs.windsurf.com/windsurf/cascade/mcp). Use the standard config above.
+
+</details>
+
+<details>
+<summary>Other clients</summary>
+
+Add the standard config to your MCP configuration file. See [MCP documentation](https://modelcontextprotocol.io/quickstart/user) for client-specific instructions.
+
+</details>
+
+### 2. Install Browser Extension
+
+1. Download `console-bridge-ext-v*.zip` from the [latest release](https://github.com/vltansky/console-bridge-mcp/releases/latest)
+2. Unzip to a permanent location (e.g., `~/.console-bridge-extension`)
+3. Open Chrome → `chrome://extensions`
+4. Enable "Developer mode" (toggle in top right)
+5. Click "Load unpacked" → select the unzipped folder
+6. Click the extension icon → verify it shows "Connected"
+
+### 3. Verify Installation
+
+Restart your MCP client, then try:
+
+```
+Show me recent console errors
+```
+
+If you see log data, you're all set!
 
 ---
 
