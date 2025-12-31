@@ -165,6 +165,10 @@ Execute: window.featureFlags.enableDebug = true
 Query DOM for '.error-message' elements
 ```
 
+### One-Click Cursor Integration
+
+Click **"Open in Cursor"** in the extension popup to instantly open Cursor with a context-aware prompt to analyze the current tab's logs.
+
 ### Project Skills
 
 Create `.console-bridge/*.md` files to teach your AI project-specific debugging workflows.
