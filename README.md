@@ -169,13 +169,31 @@ Query DOM for '.error-message' elements
 
 Click **"Open in Cursor"** in the extension popup to instantly open Cursor with a context-aware prompt to analyze the current tab's logs.
 
-### Project Skills
+### 🧠 Project Skills (Context for AI)
 
-Create `.console-bridge/*.md` files to teach your AI project-specific debugging workflows.
+Teach your AI assistant how to debug *your* specific project. Create a `.console-bridge/` directory in your project root and add Markdown files with debugging playbooks.
 
+**Why use Skills?**
+- **Onboard AI instantly:** Define complex debugging flows once, use them forever.
+- **Share knowledge:** Commit your debugging guides so every team member's AI assistant knows them.
+- **Context-aware:** The AI discovers available skills automatically.
+
+**Example:**
+Create `.console-bridge/auth-debug.md`:
+```markdown
+---
+title: Debug Authentication Flow
+description: Steps to diagnose login failures
+---
+1. Filter logs for "AuthService"
+2. Check network requests to /api/login
+3. Verify JWT token in local storage
 ```
-List available debugging skills for this project
-Load the "auth-flow" debugging skill
+
+**Usage:**
+```
+List available debugging skills
+Load the auth debugging skill
 ```
 
 ---
