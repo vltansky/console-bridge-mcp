@@ -19,9 +19,15 @@ const lastErrorContainer = document.getElementById('last-error-container') as HT
 const lastErrorText = document.getElementById('last-error-text') as HTMLElement;
 const allClearContainer = document.getElementById('all-clear-container') as HTMLElement;
 const healthHud = document.getElementById('health-hud') as HTMLElement;
+const logsToggle = document.getElementById('logs-toggle') as HTMLButtonElement;
+const logsWrapper = document.getElementById('logs-wrapper') as HTMLElement;
+const logsContainer = document.getElementById('logs-container') as HTMLElement;
+const logsChevron = document.getElementById('logs-chevron') as HTMLElement;
+const activeLogCount = document.getElementById('active-log-count') as HTMLElement;
 
 let isReconnecting = false;
 let currentStatus: 'connected' | 'disconnected' | 'reconnecting' = 'disconnected';
+let isLogsExpanded = false;
 
 // Status indicator classes
 const statusIndicatorClasses = {
@@ -127,10 +133,19 @@ function setToggleState(enabled: boolean): void {
 async function updateHealthStats(): Promise<void> {
   try {
     const response = await chrome.runtime.sendMessage({ type: 'get_health_stats' });
+    const previousTabId = currentHealthStats.activeTabId;
     currentHealthStats = response;
 
     errorCountEl.textContent = String(response.activeTabErrorCount || 0);
     logCountEl.textContent = String(response.activeTabLogCount || 0);
+
+    if (activeLogCount && !isLogsExpanded) {
+      activeLogCount.textContent = String(response.activeTabLogCount || 0);
+    }
+
+    if (isLogsExpanded && previousTabId !== response.activeTabId) {
+      updateLogs();
+    }
 
     if ((response.activeTabErrorCount || 0) > 0) {
       // Show error state
@@ -488,6 +503,121 @@ function escapeHtml(text: string): string {
   return div.innerHTML;
 }
 
+// Log viewer functions
+function getLevelColor(level: string): string {
+  switch (level) {
+    case 'error':
+      return 'text-red-400';
+    case 'warn':
+      return 'text-yellow-400';
+    case 'info':
+      return 'text-blue-400';
+    case 'debug':
+      return 'text-ink-500';
+    default:
+      return 'text-ink-300';
+  }
+}
+
+function getLevelBadge(level: string): string {
+  switch (level) {
+    case 'error':
+      return 'bg-red-400';
+    case 'warn':
+      return 'bg-yellow-400';
+    case 'info':
+      return 'bg-blue-400';
+    case 'debug':
+      return 'bg-ink-600';
+    default:
+      return 'bg-ink-600';
+  }
+}
+
+function renderLogs(logs: LogMessage[]): void {
+  if (!logsContainer) {
+    return;
+  }
+
+  if (logs.length === 0) {
+    logsContainer.innerHTML = `
+      <div class="flex flex-col gap-2 justify-center items-center py-8 text-ink-600">
+        <span class="text-[11px]">No logs found for active tab</span>
+      </div>
+    `;
+    return;
+  }
+
+  logsContainer.innerHTML = logs
+    .map((log) => {
+      const ts = new Date(log.timestamp);
+      const time = `${ts.getHours().toString().padStart(2, '0')}:${ts.getMinutes().toString().padStart(2, '0')}:${ts.getSeconds().toString().padStart(2, '0')}`;
+      const levelColor = getLevelColor(log.level);
+      const levelBadge = getLevelBadge(log.level);
+      const message = escapeHtml(log.message);
+
+      return `
+        <div class="flex gap-2.5 items-start px-2 py-1.5 rounded transition-colors hover:bg-white/5 group">
+          <span class="flex-shrink-0 text-ink-600 text-[9px] font-mono pt-0.5 select-none">${time}</span>
+          <span class="flex-shrink-0 h-1.5 w-1.5 rounded-full ${levelBadge} mt-1.5" title="${log.level}"></span>
+          <span class="flex-1 ${levelColor} break-words leading-tight">${message}</span>
+        </div>
+      `;
+    })
+    .join('');
+}
+
+async function updateLogs(): Promise<void> {
+  if (!isLogsExpanded || !currentHealthStats.activeTabId) {
+    return;
+  }
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: 'get_recent_logs',
+      tabId: currentHealthStats.activeTabId,
+    });
+    const logs = response.logs || [];
+
+    if (activeLogCount) {
+      activeLogCount.textContent = String(logs.length);
+    }
+
+    renderLogs(logs);
+  } catch (error) {
+    console.error('Failed to get logs:', error);
+    if (logsContainer) {
+      logsContainer.innerHTML = `
+        <div class="flex flex-col gap-2 justify-center items-center py-3 text-red-400">
+          <span class="text-[11px]">Failed to load logs</span>
+        </div>
+      `;
+    }
+  }
+}
+
+// Toggle logs viewer
+if (logsToggle && logsWrapper) {
+  logsToggle.addEventListener('click', () => {
+    isLogsExpanded = !isLogsExpanded;
+
+    if (isLogsExpanded) {
+      logsWrapper.classList.remove('grid-rows-[0fr]');
+      logsWrapper.classList.add('grid-rows-[1fr]');
+      if (logsChevron) {
+        logsChevron.style.transform = 'rotate(180deg)';
+      }
+      updateLogs();
+    } else {
+      logsWrapper.classList.remove('grid-rows-[1fr]');
+      logsWrapper.classList.add('grid-rows-[0fr]');
+      if (logsChevron) {
+        logsChevron.style.transform = 'rotate(0deg)';
+      }
+    }
+  });
+}
+
 async function init(): Promise<void> {
   await loadSettings();
   await updateStats();
@@ -499,6 +629,9 @@ async function init(): Promise<void> {
     updateStats();
     updateHealthStats();
     updateTabs();
+    if (isLogsExpanded) {
+      updateLogs();
+    }
   }, 2000);
 }
 

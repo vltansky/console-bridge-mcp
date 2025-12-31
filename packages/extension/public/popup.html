@@ -93,6 +93,29 @@
         </div>
       </div>
 
+      <!-- Current Page Logs -->
+      <div class="flex flex-col min-h-0 border-t border-ink-800/50 pt-3 mt-1">
+        <button id="logs-toggle" class="flex justify-between items-center w-full text-[10px] font-semibold text-ink-500 uppercase tracking-wider hover:text-ink-300 transition-colors group mb-2">
+          <span class="flex items-center gap-2">
+            Current Page Logs
+            <span id="active-log-count" class="bg-ink-800 text-ink-400 group-hover:bg-ink-700 group-hover:text-ink-300 transition-colors text-[9px] px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">0</span>
+          </span>
+          <svg id="logs-chevron" class="w-4 h-4 text-ink-600 group-hover:text-ink-400 transition-all duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+        </button>
+
+        <div id="logs-wrapper" class="grid grid-rows-[0fr] transition-all duration-300 ease-out">
+          <div class="overflow-hidden">
+            <div id="logs-container" class="flex flex-col overflow-y-auto max-h-[240px] custom-scrollbar bg-black/20 rounded-lg border border-ink-800/50 p-1 font-mono text-[10px]">
+              <div class="flex flex-col gap-2 justify-center items-center py-8 text-ink-600">
+                <span class="text-[11px]">No logs found for active tab</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Settings -->
       <div class="pt-3 mt-auto border-t border-ink-800/50">
         <div class="flex justify-center items-center px-1">
