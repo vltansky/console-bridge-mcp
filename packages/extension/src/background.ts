@@ -456,13 +456,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
 
     case 'get_status':
-      void ensureInitialized().then(() => {
+      void ensureInitialized().then(async () => {
+        const basicStatus = wsClient?.getStatus() ?? 'disconnected';
+        let validatedStatus = basicStatus;
+
+        // If WebSocket appears connected, validate with HTTP health check
+        if (basicStatus === 'connected' && wsClient && lastDiscoveryPort) {
+          const isActuallyConnected = await wsClient.checkConnection(lastDiscoveryPort);
+          if (!isActuallyConnected) {
+            validatedStatus = 'disconnected';
+          }
+        }
+
         sendResponse({
-          connected: wsClient?.getStatus() === 'connected',
+          connected: validatedStatus === 'connected',
           enabled: isEnabled,
           queueLength: wsClient?.getQueueLength() || pendingMessages.length,
           reconnectAttempts: wsClient?.getReconnectAttempts() ?? 0,
-          status: wsClient?.getStatus() ?? 'disconnected',
+          status: validatedStatus,
         });
       });
       return true;

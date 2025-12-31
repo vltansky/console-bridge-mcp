@@ -235,6 +235,45 @@ export class WebSocketClient {
     }
   }
 
+  /**
+   * Validate connection by checking if server is actually reachable.
+   * More reliable than getStatus() as it detects server crashes where
+   * WebSocket still shows OPEN but server is gone.
+   */
+  async checkConnection(discoveryPort: number): Promise<boolean> {
+    if (this.getStatus() !== 'connected') {
+      return false;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:${discoveryPort}/discover`, {
+        method: 'HEAD',
+        signal: AbortSignal.timeout(1000),
+      });
+
+      if (!response.ok) {
+        this.handleStaleConnection();
+        return false;
+      }
+
+      return true;
+    } catch {
+      this.handleStaleConnection();
+      return false;
+    }
+  }
+
+  private handleStaleConnection(): void {
+    console.log('[WebSocket] Detected stale connection, forcing reconnect');
+    if (this.ws) {
+      this.ws.close();
+      this.ws = undefined;
+    }
+    this.invalidateResolvedUrl();
+    this.updateStatus('disconnected');
+    this.scheduleReconnect();
+  }
+
   getQueueLength(): number {
     return this.messageQueue.length;
   }
