@@ -7,34 +7,34 @@
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body class="bg-ink-950 text-ink-50 font-sans antialiased min-h-[420px] w-[360px] selection:bg-accent-primary/30 selection:text-white">
-    <div class="p-4 flex flex-col gap-3 h-full">
+    <div class="flex flex-col gap-3 p-4 h-full">
 
       <!-- Header -->
-      <header class="flex items-center justify-between">
-        <div class="flex items-center gap-2.5">
-          <img src="icon-48.png" alt="Console Bridge" class="h-7 w-7 rounded-lg" />
+      <header class="flex justify-between items-center">
+        <div class="flex gap-2.5 items-center">
+          <img src="icon-48.png" alt="Console Bridge" class="w-7 h-7 rounded-lg" />
           <div>
-            <h1 class="font-bold text-sm leading-tight tracking-tight">Console Bridge</h1>
+            <h1 class="text-sm font-bold tracking-tight leading-tight">Console Bridge</h1>
             <p class="text-[9px] text-ink-500 font-medium tracking-wide uppercase">MCP Extension</p>
           </div>
         </div>
 
-        <button id="status-container" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-ink-900 border border-ink-800 cursor-pointer hover:bg-ink-800 transition-colors" title="Click to reconnect">
-          <span id="status-indicator" class="h-2 w-2 rounded-full bg-ink-600 transition-colors duration-300"></span>
+        <button id="status-container" class="flex gap-1.5 items-center px-2.5 py-1 rounded-full border transition-colors cursor-pointer bg-ink-900 border-ink-800 hover:bg-ink-800" title="Click to reconnect">
+          <span id="status-indicator" class="w-2 h-2 rounded-full transition-colors duration-300 bg-ink-600"></span>
           <span id="status-text" class="text-[10px] font-medium text-ink-300 uppercase tracking-wider">Offline</span>
         </button>
       </header>
 
       <!-- Health HUD -->
-      <div id="health-hud" class="rounded-xl border p-3 transition-all duration-300 border-ink-800 bg-ink-900/50">
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center gap-3">
-            <div class="flex items-center gap-1.5">
+      <div id="health-hud" class="p-3 rounded-xl border transition-all duration-300 border-ink-800 bg-ink-900/50">
+        <div class="flex justify-between items-center mb-2">
+          <div class="flex gap-3 items-center">
+            <div class="flex gap-1.5 items-center">
               <span id="error-count" class="text-lg font-bold text-red-400">0</span>
               <span class="text-[10px] text-ink-500 uppercase">Errors</span>
             </div>
             <div class="w-px h-4 bg-ink-700"></div>
-            <div class="flex items-center gap-1.5">
+            <div class="flex gap-1.5 items-center">
               <span id="log-count" class="text-lg font-bold text-ink-300">0</span>
               <span class="text-[10px] text-ink-500 uppercase">Logs</span>
             </div>
@@ -45,9 +45,9 @@
         </div>
         <div id="last-error-container" class="hidden">
           <div class="text-[10px] text-ink-500 uppercase mb-1">Last Error</div>
-          <div id="last-error-text" class="text-xs text-red-300 font-mono truncate bg-red-950/30 px-2 py-1.5 rounded-lg border border-red-900/50"></div>
+          <div id="last-error-text" class="px-2 py-1.5 font-mono text-xs text-red-300 truncate rounded-lg border bg-red-950/30 border-red-900/50"></div>
         </div>
-        <div id="all-clear-container" class="flex items-center gap-2 text-emerald-400">
+        <div id="all-clear-container" class="flex gap-2 items-center text-emerald-400">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
           <span class="text-xs font-medium">No errors detected</span>
         </div>
@@ -55,11 +55,11 @@
 
       <!-- Primary Actions -->
       <div class="grid grid-cols-2 gap-2">
-        <button id="analyze-btn" class="flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold transition-all bg-accent-primary text-ink-950 hover:bg-accent-primary/90">
+        <button id="analyze-btn" class="flex gap-2 justify-center items-center px-4 py-3 text-sm font-semibold rounded-xl transition-all bg-accent-primary text-ink-950 hover:bg-accent-primary/90">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
           <span id="analyze-btn-text">Analyze</span>
         </button>
-        <button id="mark-btn" class="flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold transition-all bg-ink-800 text-ink-200 hover:bg-ink-700 border border-ink-700">
+        <button id="mark-btn" class="flex gap-2 justify-center items-center px-4 py-3 text-sm font-semibold rounded-xl border transition-all bg-ink-800 text-ink-200 hover:bg-ink-700 border-ink-700">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
           <span>Mark</span>
         </button>
@@ -67,19 +67,19 @@
 
       <!-- Secondary Actions -->
       <div class="grid grid-cols-2 gap-2">
-        <button id="copy-logs-btn" class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium transition-all text-ink-400 hover:text-ink-200 hover:bg-ink-800/50 border border-ink-800/50 hover:border-ink-700">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+        <button id="copy-logs-btn" class="flex gap-1.5 justify-center items-center px-3 py-2 text-xs font-medium rounded-lg border transition-all text-ink-400 hover:text-ink-200 hover:bg-ink-800/50 border-ink-800/50 hover:border-ink-700">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
           <span>Copy Logs</span>
         </button>
-        <button id="clear-logs-btn" class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium transition-all text-ink-400 hover:text-ink-200 hover:bg-ink-800/50 border border-ink-800/50 hover:border-ink-700">
+        <button id="clear-logs-btn" class="flex gap-1.5 justify-center items-center px-3 py-2 text-xs font-medium rounded-lg border transition-all text-ink-400 hover:text-ink-200 hover:bg-ink-800/50 border-ink-800/50 hover:border-ink-700">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
           <span>Clear All</span>
         </button>
       </div>
 
       <!-- Active Tabs -->
-      <div class="flex flex-col gap-2 flex-1 min-h-0">
-        <div class="flex items-center justify-between px-1">
+      <div class="flex flex-col flex-1 gap-2 min-h-0">
+        <div class="flex justify-between items-center px-1">
           <h2 class="text-[10px] font-semibold text-ink-500 uppercase tracking-wider flex items-center gap-2">
             Active Tabs
             <span id="active-tabs" class="bg-ink-800 text-ink-400 text-[9px] px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">0</span>
@@ -87,17 +87,17 @@
         </div>
 
         <div id="tabs-list" class="flex-1 overflow-y-auto min-h-[80px] max-h-[120px] space-y-1 pr-1 custom-scrollbar">
-          <div class="flex flex-col items-center justify-center h-full text-ink-500 gap-2 py-3">
+          <div class="flex flex-col gap-2 justify-center items-center py-3 h-full text-ink-500">
             <span class="text-[11px]">No active tabs connected</span>
           </div>
         </div>
       </div>
 
       <!-- Settings -->
-      <div class="border-t border-ink-800/50 pt-3 mt-auto">
-        <div class="flex items-center justify-center px-1">
-          <label class="flex items-center gap-2 cursor-pointer group">
-            <div class="relative inline-flex items-center">
+      <div class="pt-3 mt-auto border-t border-ink-800/50">
+        <div class="flex justify-center items-center px-1">
+          <label class="flex gap-2 items-center cursor-pointer group">
+            <div class="inline-flex relative items-center">
               <input type="checkbox" id="sanitize-checkbox" class="sr-only peer">
               <div class="w-7 h-4 bg-ink-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-accent-primary"></div>
             </div>
