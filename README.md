@@ -16,7 +16,14 @@ Capture logs from all tabs, search errors, and equip your AI with project-specif
 
 ## Why console-bridge?
 
-Unlike browser automation tools that require you to connect each tab, **console-bridge works passively**. Once installed, it captures console output from all your browser tabs in the background — your AI agent can query logs anytime without you doing anything.
+**1. 🔌 Passive & Always-On**
+No need to launch a special browser instance or connect to specific tabs. console-bridge captures everything in the background.
+
+**2. 🧠 Teachable (Project Skills)**
+Define custom debugging workflows in Markdown. Your AI reads them to understand *how* to debug your specific application.
+
+**3. 🔍 Context Efficient**
+Stop dumping massive log files. Search, filter, and fetch only the relevant lines to save tokens and reduce noise.
 
 | | console-bridge | Browser automation tools |
 |--|---------------|--------------------------|
