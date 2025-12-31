@@ -249,10 +249,7 @@ async function handleCommand(message: ServerMessage): Promise<any> {
   }
 }
 
-function buildDomSnapshot(
-  element: Element | null,
-  maxDepth = 10,
-): DomSnapshotNode | null {
+function buildDomSnapshot(element: Element | null, maxDepth = 10): DomSnapshotNode | null {
   if (!element || maxDepth <= 0) {
     return null;
   }
