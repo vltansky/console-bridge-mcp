@@ -45,7 +45,18 @@ export type ServerMessage =
   | {
       type: 'query_dom';
       data: { requestId: string; selector: string; tabId?: number; properties?: string[] };
-    };
+    }
+  | { type: 'get_dom_snapshot'; data: { requestId: string; tabId?: number } };
+
+// DOM snapshot node
+export interface DomSnapshotNode {
+  role: string;
+  name?: string;
+  value?: string;
+  description?: string;
+  properties?: Record<string, unknown>;
+  children?: DomSnapshotNode[];
+}
 
 // Browser command responses
 export type BrowserCommandResponse =
@@ -61,6 +72,10 @@ export type BrowserCommandResponse =
         elements: Array<{ selector: string; properties: Record<string, unknown> }>;
         error?: string;
       };
+    }
+  | {
+      type: 'dom_snapshot_response';
+      data: { requestId: string; snapshot?: DomSnapshotNode; error?: string };
     };
 
 // Filter options for querying logs
@@ -198,6 +213,13 @@ export const ServerMessageSchema = z.discriminatedUnion('type', [
       properties: z.array(z.string()).optional(),
     }),
   }),
+  z.object({
+    type: z.literal('get_dom_snapshot'),
+    data: z.object({
+      requestId: z.string(),
+      tabId: z.number().optional(),
+    }),
+  }),
 ]);
 
 export const BrowserCommandResponseSchema = z.discriminatedUnion('type', [
@@ -229,6 +251,23 @@ export const BrowserCommandResponseSchema = z.discriminatedUnion('type', [
           properties: z.record(z.unknown()),
         }),
       ),
+      error: z.string().optional(),
+    }),
+  }),
+  z.object({
+    type: z.literal('dom_snapshot_response'),
+    data: z.object({
+      requestId: z.string(),
+      snapshot: z
+        .object({
+          role: z.string(),
+          name: z.string().optional(),
+          value: z.string().optional(),
+          description: z.string().optional(),
+          properties: z.record(z.unknown()).optional(),
+          children: z.lazy(() => z.array(z.any())).optional(),
+        })
+        .optional(),
       error: z.string().optional(),
     }),
   }),

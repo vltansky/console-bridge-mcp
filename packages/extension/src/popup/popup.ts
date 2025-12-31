@@ -64,7 +64,8 @@ function updateStatus(
       statusText.textContent = 'Online';
       break;
     case 'disconnected':
-      statusText.textContent = reconnectAttempts > 0 ? `Offline (#${reconnectAttempts})` : 'Offline';
+      statusText.textContent =
+        reconnectAttempts > 0 ? `Offline (#${reconnectAttempts})` : 'Offline';
       break;
     case 'reconnecting':
       statusText.textContent = reconnectAttempts > 0 ? `Retry #${reconnectAttempts}` : 'Connecting';

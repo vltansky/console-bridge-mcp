@@ -21,7 +21,7 @@ module.exports = {
           primary: '#5ce1e6', // Cyan from icon
           success: '#22c55e', // Green
           warning: '#eab308', // Yellow
-          error: '#ef4444',   // Red
+          error: '#ef4444', // Red
         },
       },
     },

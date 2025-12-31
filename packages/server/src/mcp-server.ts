@@ -327,25 +327,15 @@ export class McpServer {
           },
         },
         {
-          name: 'console_snapshot',
-          description: 'Quick digest of recent console activity (top errors, warnings, trends).',
+          name: 'console_dom_snapshot',
+          description:
+            'Capture DOM snapshot of the current page (structure, elements, roles, properties).',
           inputSchema: {
             type: 'object',
             properties: {
-              window: {
-                type: 'string',
-                enum: ['1m', '5m', '15m'],
-                default: '5m',
-                description: 'Time window for snapshot (e.g., last 5 minutes)',
-              },
               tabId: {
                 type: 'number',
-                description: 'Optional tab to scope the snapshot',
-              },
-              includeExamples: {
-                type: 'boolean',
-                default: false,
-                description: 'Include sample log IDs/messages for each section',
+                description: 'Target tab (defaults to active tab)',
               },
             },
           },
@@ -442,8 +432,8 @@ export class McpServer {
 
 **console_browser_query** — Query DOM elements by CSS selector.
 
-**console_snapshot**
-- Summarize recent activity (counts, error patterns) over the last 1/5/15 minutes, optionally scoped to a tab.
+**console_dom_snapshot**
+- Capture DOM snapshot of the current page (structure, elements, roles, properties).
 
 **console_skills_list / console_skills_load**
 - console_skills_list surfaces project-specific skills defined in .console-bridge/*.md.
@@ -467,7 +457,7 @@ export class McpServer {
 - "search for X" → console_search(action: "regex", pattern: "X", tabId: X)
 - "query DOM" → console_browser_query(selector: ".error-message")
 - "toggle feature flag" → console_browser_execute(code: "window.flags.enableBeta()")
-- "give me a quick status" → console_snapshot(window: "5m", includeExamples: true)
+- "get page snapshot" → console_dom_snapshot(tabId: X)
 
 Use the appropriate Console MCP tools to help the user query and analyze their browser console logs.`,
               },
@@ -571,8 +561,8 @@ Now, help me create a browser skill for this project.`,
               args as { selector: string; tabId?: number; properties?: string[] },
             );
 
-          case 'console_snapshot':
-            return await this.handleSnapshotTool(args as any);
+          case 'console_dom_snapshot':
+            return await this.handleDomSnapshotTool(args as { tabId?: number });
 
           case 'console_skills_list':
             return await this.handleSkillsListTool(args as any);
@@ -814,38 +804,29 @@ Now, help me create a browser skill for this project.`,
     });
   }
 
-  private async handleSnapshotTool(args: {
-    window?: '1m' | '5m' | '15m';
-    tabId?: number;
-    includeExamples?: boolean;
-  }) {
-    const windowMap: Record<'1m' | '5m' | '15m', number> = {
-      '1m': 60 * 1000,
-      '5m': 5 * 60 * 1000,
-      '15m': 15 * 60 * 1000,
-    };
-    const windowKey = args.window || '5m';
-    const windowMs = windowMap[windowKey];
-    const since = Date.now() - windowMs;
-
-    const baseFilter: FilterOptions = {
-      tabId: args.tabId,
-      after: new Date(since).toISOString(),
-    };
-    const recentLogs = this.storage.getAll(baseFilter);
-
-    const summary = this.buildSnapshotSummary(recentLogs, since, {
-      includeExamples: args.includeExamples,
-    });
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(summary, null, 2),
-        },
-      ],
-    };
+  private async handleDomSnapshotTool(args: { tabId?: number }) {
+    try {
+      const snapshot = await this.wsServer.getDomSnapshot(args.tabId);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(snapshot, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error: ${message}`,
+          },
+        ],
+        isError: true,
+      };
+    }
   }
 
   private async handleSkillsListTool(args: { projectPath: string }) {
@@ -955,65 +936,6 @@ Now, help me create a browser skill for this project.`,
       urlPattern: args.urlPattern,
       after: args.after,
       before: args.before,
-    };
-  }
-
-  private buildSnapshotSummary(
-    logs: any[],
-    sinceTimestamp: number,
-    options: { includeExamples?: boolean },
-  ) {
-    const windowMinutes = Math.max(1, Math.round((Date.now() - sinceTimestamp) / (60 * 1000)));
-
-    const countsByLevel: Record<string, number> = {};
-    const errorsByMessage = new Map<string, { count: number; samples: any[] }>();
-    let newestLog: any | undefined;
-
-    for (const log of logs) {
-      countsByLevel[log.level] = (countsByLevel[log.level] || 0) + 1;
-
-      if (log.level === 'error') {
-        const key = log.message.slice(0, 200);
-        if (!errorsByMessage.has(key)) {
-          errorsByMessage.set(key, { count: 0, samples: [] });
-        }
-        const entry = errorsByMessage.get(key);
-        if (!entry) continue;
-        entry.count += 1;
-        if (options.includeExamples && entry.samples.length < 3) {
-          entry.samples.push({ id: log.id, tabId: log.tabId, timestamp: log.timestamp });
-        }
-      }
-
-      if (!newestLog || log.timestamp > newestLog.timestamp) {
-        newestLog = log;
-      }
-    }
-
-    const topErrors = Array.from(errorsByMessage.entries())
-      .sort((a, b) => b[1].count - a[1].count)
-      .slice(0, 3)
-      .map(([message, data]) => ({
-        message,
-        count: data.count,
-        samples: options.includeExamples ? data.samples : undefined,
-      }));
-
-    return {
-      windowMinutes,
-      totalLogs: logs.length,
-      countsByLevel,
-      topErrors,
-      latestLog:
-        newestLog && options.includeExamples
-          ? {
-              id: newestLog.id,
-              level: newestLog.level,
-              message: newestLog.message,
-              timestamp: newestLog.timestamp,
-              tabId: newestLog.tabId,
-            }
-          : undefined,
     };
   }
 

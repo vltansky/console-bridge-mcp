@@ -1,4 +1,9 @@
-import type { BrowserCommandResponse, LogMessage, ServerMessage } from 'console-bridge-shared';
+import type {
+  BrowserCommandResponse,
+  DomSnapshotNode,
+  LogMessage,
+  ServerMessage,
+} from 'console-bridge-shared';
 import { interceptConsole } from './lib/console-interceptor';
 
 interface ExecuteResultPayload {
@@ -215,10 +220,205 @@ async function handleCommand(message: ServerMessage): Promise<any> {
       }
     }
 
+    case 'get_dom_snapshot': {
+      try {
+        const snapshot = buildDomSnapshot(document.body);
+        const response: BrowserCommandResponse = {
+          type: 'dom_snapshot_response',
+          data: {
+            requestId: message.data.requestId,
+            snapshot,
+          },
+        };
+        return response;
+      } catch (error) {
+        const response: BrowserCommandResponse = {
+          type: 'dom_snapshot_response',
+          data: {
+            requestId: message.data.requestId,
+            error: error instanceof Error ? error.message : String(error),
+          },
+        };
+        return response;
+      }
+    }
+
     default:
       // Not a command for content script
       return null;
   }
+}
+
+function buildDomSnapshot(
+  element: Element | null,
+  maxDepth = 10,
+): DomSnapshotNode | null {
+  if (!element || maxDepth <= 0) {
+    return null;
+  }
+
+  const role = getRole(element);
+  const name = getAccessibleName(element);
+  const value = getValue(element);
+  const description = getDescription(element);
+  const properties = getProperties(element);
+
+  const children: DomSnapshotNode[] = [];
+  for (const child of Array.from(element.children)) {
+    const childSnapshot = buildDomSnapshot(child, maxDepth - 1);
+    if (childSnapshot) {
+      children.push(childSnapshot);
+    }
+  }
+
+  const node: DomSnapshotNode = {
+    role,
+    ...(name && { name }),
+    ...(value && { value }),
+    ...(description && { description }),
+    ...(Object.keys(properties).length > 0 && { properties }),
+    ...(children.length > 0 && { children }),
+  };
+
+  return node;
+}
+
+const ROLE_MAP: Record<string, string> = {
+  a: 'link',
+  button: 'button',
+  textarea: 'textbox',
+  select: 'combobox',
+  img: 'img',
+  h1: 'heading',
+  h2: 'heading',
+  h3: 'heading',
+  h4: 'heading',
+  h5: 'heading',
+  h6: 'heading',
+  nav: 'navigation',
+  main: 'main',
+  article: 'article',
+  section: 'region',
+  aside: 'complementary',
+  header: 'banner',
+  footer: 'contentinfo',
+  form: 'form',
+  ul: 'list',
+  ol: 'list',
+  li: 'listitem',
+  table: 'table',
+  thead: 'rowgroup',
+  tbody: 'rowgroup',
+  tr: 'row',
+  th: 'columnheader',
+  td: 'cell',
+};
+
+function getRole(element: Element): string {
+  const ariaRole = element.getAttribute('role');
+  if (ariaRole) return ariaRole;
+
+  const tagName = element.tagName.toLowerCase();
+
+  if (tagName === 'input') {
+    return getInputRole(element as HTMLInputElement);
+  }
+
+  return ROLE_MAP[tagName] || 'generic';
+}
+
+function getInputRole(input: HTMLInputElement): string {
+  const type = input.type?.toLowerCase() || 'text';
+  const roleMap: Record<string, string> = {
+    button: 'button',
+    checkbox: 'checkbox',
+    radio: 'radio',
+    range: 'slider',
+    submit: 'button',
+    reset: 'button',
+    file: 'button',
+    image: 'button',
+  };
+  return roleMap[type] || 'textbox';
+}
+
+function getAccessibleName(element: Element): string | undefined {
+  const ariaLabel = element.getAttribute('aria-label');
+  if (ariaLabel) return ariaLabel;
+
+  const ariaLabelledBy = element.getAttribute('aria-labelledby');
+  if (ariaLabelledBy) {
+    const labelElement = document.getElementById(ariaLabelledBy);
+    if (labelElement) return labelElement.textContent?.trim() || undefined;
+  }
+
+  const label = element.closest('label');
+  if (label) {
+    const labelText = label.textContent?.trim();
+    if (labelText) return labelText;
+  }
+
+  if (element.tagName === 'IMG') {
+    const alt = (element as HTMLImageElement).alt;
+    if (alt) return alt;
+  }
+
+  if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+    const placeholder = (element as HTMLInputElement).placeholder;
+    if (placeholder) return placeholder;
+  }
+
+  const textContent = element.textContent?.trim();
+  if (textContent && textContent.length < 200) {
+    return textContent;
+  }
+
+  return undefined;
+}
+
+function getValue(element: Element): string | undefined {
+  if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+    return element.value || undefined;
+  }
+  if (element instanceof HTMLSelectElement) {
+    return element.value || undefined;
+  }
+  return undefined;
+}
+
+function getDescription(element: Element): string | undefined {
+  const ariaDescribedBy = element.getAttribute('aria-describedby');
+  if (ariaDescribedBy) {
+    const descElement = document.getElementById(ariaDescribedBy);
+    if (descElement) return descElement.textContent?.trim() || undefined;
+  }
+  return undefined;
+}
+
+function getProperties(element: Element): Record<string, unknown> {
+  const props: Record<string, unknown> = {};
+
+  if (element instanceof HTMLInputElement) {
+    if (element.checked !== undefined) props.checked = element.checked;
+    if (element.disabled) props.disabled = true;
+    if (element.required) props.required = true;
+    if (element.readOnly) props.readonly = true;
+  }
+
+  if (element instanceof HTMLButtonElement) {
+    if (element.disabled) props.disabled = true;
+  }
+
+  const ariaExpanded = element.getAttribute('aria-expanded');
+  if (ariaExpanded !== null) props.expanded = ariaExpanded === 'true';
+
+  const ariaSelected = element.getAttribute('aria-selected');
+  if (ariaSelected !== null) props.selected = ariaSelected === 'true';
+
+  const ariaHidden = element.getAttribute('aria-hidden');
+  if (ariaHidden === 'true') props.hidden = true;
+
+  return props;
 }
 
 console.log('[Console MCP] Content script initialized');

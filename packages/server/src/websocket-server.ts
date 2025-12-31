@@ -1,5 +1,6 @@
 import type {
   BrowserCommandResponse,
+  DomSnapshotNode,
   ExtensionMessage,
   ServerMessage,
   TabInfo,
@@ -193,6 +194,14 @@ export class ConsoleWebSocketServer {
           pending.resolve(response.data.elements);
         }
         break;
+
+      case 'dom_snapshot_response':
+        if (response.data.error) {
+          pending.reject(new Error(response.data.error));
+        } else {
+          pending.resolve(response.data.snapshot);
+        }
+        break;
     }
   }
 
@@ -295,6 +304,23 @@ export class ConsoleWebSocketServer {
     const message: ServerMessage = {
       type: 'query_dom',
       data: { requestId, selector, tabId, properties },
+    };
+
+    return this.sendCommand(message, requestId);
+  }
+
+  /**
+   * Get DOM snapshot of the page
+   */
+  async getDomSnapshot(tabId?: number): Promise<DomSnapshotNode | null> {
+    if (this.clients.size === 0) {
+      throw new Error('No browser clients connected');
+    }
+
+    const requestId = crypto.randomUUID();
+    const message: ServerMessage = {
+      type: 'get_dom_snapshot',
+      data: { requestId, tabId },
     };
 
     return this.sendCommand(message, requestId);
